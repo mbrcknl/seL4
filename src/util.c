@@ -132,44 +132,101 @@ long PURE str_to_long(const char *str)
     return val;
 }
 
-#ifdef CONFIG_ARCH_RISCV
-uint32_t __clzsi2(uint32_t x)
+#define BIT_CZ(typ, i) (((typ)1) << (1 << (i)))
+#define MASK_CZ(typ, i) (BIT_CZ(typ, i) - ((typ)1))
+
+compile_assert(clz_ulong_32_or_64, sizeof(unsigned long) == 4 || sizeof(unsigned long) == 8);
+compile_assert(clz_ullong_64, sizeof(unsigned long long) == 8);
+
+#ifndef CONFIG_CLZ_BUILTIN
+#define CLZ_STEP(typ, i) \
+    bits = ((int)(BIT_CZ(typ, i) <= x)) << (i); \
+    x >>= bits; \
+    count |= bits;
+
+static inline int clz32(uint32_t x)
 {
-    uint32_t count = 0;
-    while (!(x & 0x80000000U) && count < 34) {
-        x <<= 1;
-        count++;
+    if (x == 0) {
+        return 32;
     }
-    return count;
+    int count = 0, bits;
+    CLZ_STEP(uint32_t, 4);
+    CLZ_STEP(uint32_t, 3);
+    CLZ_STEP(uint32_t, 2);
+    CLZ_STEP(uint32_t, 1);
+    return 31 - (count | (x >> 1));
 }
 
-uint32_t __ctzsi2(uint32_t x)
+static inline int clz64(uint64_t x)
 {
-    uint32_t count = 0;
-    while (!(x & 0x000000001) && count <= 32) {
-        x >>= 1;
-        count++;
+    if (x == 0) {
+        return 64;
     }
-    return count;
+    int count = 0, bits;
+    CLZ_STEP(uint64_t, 5);
+    CLZ_STEP(uint64_t, 4);
+    CLZ_STEP(uint64_t, 3);
+    CLZ_STEP(uint64_t, 2);
+    CLZ_STEP(uint64_t, 1);
+    return 63 - (count | (x >> 1));
+}
+#undef CLZ_STEP
+
+static int clzl_impl(unsigned long x)
+{
+    return sizeof(unsigned long) == 8 ? clz64(x) : clz32(x);
 }
 
-uint32_t __clzdi2(uint64_t x)
+static int clzll_impl(unsigned long long x)
 {
-    uint32_t count = 0;
-    while (!(x & 0x8000000000000000U) && count < 65) {
-        x <<= 1;
-        count++;
+    return clz64(x);
+}
+#endif // CONFIG_CLZ_BUILTIN
+
+#if !defined(CONFIG_CTZ_BUILTIN) && !defined(CONFIG_CLZ_BUILTIN)
+#define CTZ_STEP(typ, i) \
+    bits = ((int)((x & MASK_CZ(typ, i)) == 0)) << (i); \
+    x >>= bits; \
+    count |= bits;
+
+static inline int ctz32(uint32_t x)
+{
+    if (x == 0) {
+        return 32;
     }
-    return count;
+    int count = 0, bits;
+    CTZ_STEP(uint32_t, 4);
+    CTZ_STEP(uint32_t, 3);
+    CTZ_STEP(uint32_t, 2);
+    CTZ_STEP(uint32_t, 1);
+    return count | ((x & 1) == 0);
 }
 
-uint32_t __ctzdi2(uint64_t x)
+static inline int ctz64(uint64_t x)
 {
-    uint32_t count = 0;
-    while (!(x & 0x00000000000000001) && count <= 64) {
-        x >>= 1;
-        count++;
+    if (x == 0) {
+        return 64;
     }
-    return count;
+    int count = 0, bits;
+    CTZ_STEP(uint64_t, 5);
+    CTZ_STEP(uint64_t, 4);
+    CTZ_STEP(uint64_t, 3);
+    CTZ_STEP(uint64_t, 2);
+    CTZ_STEP(uint64_t, 1);
+    return count | ((x & 1) == 0);
 }
-#endif /* CONFIG_ARCH_RISCV */
+#undef CTZ_STEP
+
+static int ctzl_impl(unsigned long x)
+{
+    return sizeof(unsigned long) == 8 ? ctz64(x) : ctz32(x);
+}
+
+static int ctzll_impl(unsigned long long x)
+{
+    return ctz64(x);
+}
+#endif // CONFIG_CTZ_BUILTIN || CONFIG_CLZ_BUILTIN
+
+#undef MASK_CZ
+#undef BIT_CZ
