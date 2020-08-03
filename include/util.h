@@ -99,15 +99,20 @@ long CONST char_to_long(char c);
 long PURE str_to_long(const char *str);
 
 
-int __builtin_clzl(unsigned long x);
-int __builtin_ctzl(unsigned long x);
-
-#ifdef CONFIG_ARCH_RISCV
-uint32_t __clzsi2(uint32_t x);
-uint32_t __ctzsi2(uint32_t x);
-uint32_t __clzdi2(uint64_t x);
-uint32_t __ctzdi2(uint64_t x);
+#ifndef CONFIG_CLZ_BUILTIN
+static int clzl_impl(unsigned long x);
+static int clzll_impl(unsigned long long x);
 #endif
+
+#if !defined(CONFIG_CTZ_BUILTIN) && !defined(CONFIG_CLZ_BUILTIN)
+static int ctzl_impl(unsigned long x);
+static int ctzll_impl(unsigned long long x);
+#endif
+
+// Used for compile-time constants, so should always use the builtin.
+#define CTZL(x) __builtin_ctzl(x)
+
+#ifdef CONFIG_CLZ_BUILTIN
 /** MODIFIES: */
 /** DONT_TRANSLATE */
 /** FNSPEC clzl_spec:
@@ -116,12 +121,38 @@ uint32_t __ctzdi2(uint64_t x);
       \<acute>ret__long :== PROC clzl(\<acute>x)
     \<lbrace> \<acute>ret__long = of_nat (word_clz (x_' s)) \<rbrace>"
 */
+#endif
 static inline long
 CONST clzl(unsigned long x)
 {
+#ifdef CONFIG_CLZ_BUILTIN
     return __builtin_clzl(x);
+#else
+    return clzl_impl(x);
+#endif
 }
 
+#ifdef CONFIG_CLZ_BUILTIN
+/** MODIFIES: */
+/** DONT_TRANSLATE */
+/** FNSPEC clzll_spec:
+  "\<forall>s. \<Gamma> \<turnstile>
+    {\<sigma>. s = \<sigma> \<and> x_' s \<noteq> 0 }
+      \<acute>ret__longlong :== PROC clzll(\<acute>x)
+    \<lbrace> \<acute>ret__longlong = of_nat (word_clz (x_' s)) \<rbrace>"
+*/
+#endif
+static inline long long
+CONST clzll(unsigned long long x)
+{
+#ifdef CONFIG_CLZ_BUILTIN
+    return __builtin_clzll(x);
+#else
+    return clzll_impl(x);
+#endif
+}
+
+#ifdef CONFIG_CTZ_BUILTIN
 /** MODIFIES: */
 /** DONT_TRANSLATE */
 /** FNSPEC ctzl_spec:
@@ -130,27 +161,52 @@ CONST clzl(unsigned long x)
       \<acute>ret__long :== PROC ctzl(\<acute>x)
     \<lbrace> \<acute>ret__long = of_nat (word_ctz (x_' s)) \<rbrace>"
 */
+#endif
 static inline long
 CONST ctzl(unsigned long x)
 {
+#ifdef CONFIG_CTZ_BUILTIN
     return __builtin_ctzl(x);
+#else
+#ifdef CONFIG_CLZ_BUILTIN
+    if (x == 0) {
+        return 8 * sizeof(unsigned long);
+    }
+    return 8 * sizeof(unsigned long) - 1 - clzl(x & -x);
+#else
+    return ctzl_impl(x);
+#endif
+#endif
 }
 
-#define CTZL(x) __builtin_ctzl(x)
-
-int __builtin_popcountl(unsigned long x);
-
+#ifdef CONFIG_CTZ_BUILTIN
+/** MODIFIES: */
 /** DONT_TRANSLATE */
-/** FNSPEC clzll_spec:
+/** FNSPEC ctzll_spec:
   "\<forall>s. \<Gamma> \<turnstile>
     {\<sigma>. s = \<sigma> \<and> x_' s \<noteq> 0 }
-      \<acute>ret__longlong :== PROC clzll(\<acute>x)
-    \<lbrace> \<acute>ret__longlong = of_nat (word_clz (x_' s)) \<rbrace>"
+      \<acute>ret__longlong :== PROC ctzll(\<acute>x)
+    \<lbrace> \<acute>ret__longlong = of_nat (word_ctz (x_' s)) \<rbrace>"
 */
-static inline long long CONST clzll(unsigned long long x)
+#endif
+static inline long long
+CONST ctzll(unsigned long long x)
 {
-    return __builtin_clzll(x);
+#ifdef CONFIG_CTZ_BUILTIN
+    return __builtin_ctzll(x);
+#else
+#ifdef CONFIG_CLZ_BUILTIN
+    if (x == 0) {
+        return 8 * sizeof(unsigned long long);;
+    }
+    return 8 * sizeof(unsigned long long) - 1 - clzll(x & -x);
+#else
+    return ctzll_impl(x);
+#endif
+#endif
 }
+
+int __builtin_popcountl(unsigned long x);
 
 /** DONT_TRANSLATE */
 static inline long
