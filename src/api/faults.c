@@ -96,7 +96,7 @@ static inline void copyMRsFaultReply(tcb_t *sender, tcb_t *receiver, MessageID_t
     }
 }
 
-static inline void copyMRsFault(tcb_t *sender, tcb_t *receiver, MessageID_t id,
+static NO_INLINE void copyMRsFault(tcb_t *sender, tcb_t *receiver, MessageID_t id,
                                 word_t length, word_t *receiveIPCBuffer)
 {
     word_t i;
