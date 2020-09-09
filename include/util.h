@@ -112,7 +112,14 @@ static int ctzll_impl(unsigned long long x);
 // Used for compile-time constants, so should always use the builtin.
 #define CTZL(x) __builtin_ctzl(x)
 
+// Count leading zeros.
 #ifdef CONFIG_CLZ_BUILTIN
+// If we use a compiler builtin, we cannot verify it, so we use the following
+// annotations to hide the function body from the proofs, and axiomatise its
+// behaviour.
+// On the other hand, if we use our own implementation instead of the builtin,
+// then we want to expose that implementation to the proofs, and therefore hide
+// these annotations.
 /** MODIFIES: */
 /** DONT_TRANSLATE */
 /** FNSPEC clzl_spec:
@@ -133,6 +140,7 @@ CONST clzl(unsigned long x)
 }
 
 #ifdef CONFIG_CLZ_BUILTIN
+// See comments on clzl.
 /** MODIFIES: */
 /** DONT_TRANSLATE */
 /** FNSPEC clzll_spec:
@@ -152,7 +160,9 @@ CONST clzll(unsigned long long x)
 #endif
 }
 
+//Count trailing zeros.
 #ifdef CONFIG_CTZ_BUILTIN
+// See comments on clzl.
 /** MODIFIES: */
 /** DONT_TRANSLATE */
 /** FNSPEC ctzl_spec:
@@ -169,9 +179,14 @@ CONST ctzl(unsigned long x)
     return __builtin_ctzl(x);
 #else
 #ifdef CONFIG_CLZ_BUILTIN
+    // If a platform has a builtin clzl, but no builtin ctzl,
+    // clzl likely provides the fastest way to calculate ctzl.
     if (x == 0) {
+        // The calculation using clzl doesn't work when all the bits are zero.
         return 8 * sizeof(unsigned long);
     }
+    // -x = ~x + 1, so (x & -x) isolates the least significant 1-bit of x,
+    // allowing ctzl to be calculated from clzl and the word size.
     return 8 * sizeof(unsigned long) - 1 - clzl(x & -x);
 #else
     return ctzl_impl(x);
@@ -180,6 +195,7 @@ CONST ctzl(unsigned long x)
 }
 
 #ifdef CONFIG_CTZ_BUILTIN
+// See comments on clzl.
 /** MODIFIES: */
 /** DONT_TRANSLATE */
 /** FNSPEC ctzll_spec:
@@ -196,6 +212,7 @@ CONST ctzll(unsigned long long x)
     return __builtin_ctzll(x);
 #else
 #ifdef CONFIG_CLZ_BUILTIN
+    // See comments on ctzl.
     if (x == 0) {
         return 8 * sizeof(unsigned long long);;
     }

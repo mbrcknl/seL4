@@ -132,13 +132,54 @@ long PURE str_to_long(const char *str)
     return val;
 }
 
+// The following implementations of CLZ (count leading zeros) and CTZ (count
+// trailing zeros) perform a binary search for the first 1 bit from the
+// beginning (resp. end) of the input. Initially, the focus is the whole input.
+// Then, each iteration determines whether there are any 1 bits set in the
+// upper (resp. lower) half of the current focus. If there are (resp. are not),
+// then the upper half is shifted into the lower half. Either way, the lower
+// half of the current focus becomes the new focus for the next iteration.
+// After enough iterations (6 for 64-bit inputs, 5 for 32-bit inputs), the
+// focus is reduced to a single bit, and the total number of bits shifted can
+// be used to determine the number of zeros before (resp. after) the first 1
+// bit.
+//
+// Although the details vary, the general approach is standard across several
+// library implementations. Wikipedia has some references:
+// https://en.wikipedia.org/wiki/Find_first_set
+//
+// This implementation avoids branching. The test that deternines whether the
+// upper (resp. lower) half contains any ones directly produces a number which
+// can be used for an unconditional shift. If the upper (resp. lower) half is
+// all zeros, the test produces a zero, and the shift is a no-op.  A branchless
+// implementation has the disadvantage that it requires more instructions to
+// execute than one which branches, but the advantage is that none will be
+// mispredicted branches. Whether this is a good tradeoff depends on the branch
+// predictability and the architecture's pipeline depth. The most critical use
+// of clzl in the kernel is in the scheduler priority queue. In the absence of
+// a concrete application and hardware implementation to evaluate the tradeoff,
+// we somewhat arbitrarily choose a branchless implementation.
+
+// Equivalent to BIT(1 << i) and MASK(1 << i), also parameterised by type.
 #define BIT_CZ(typ, i) (((typ)1) << (1 << (i)))
 #define MASK_CZ(typ, i) (BIT_CZ(typ, i) - ((typ)1))
 
+// Check some assumptions made by the implementations.
 compile_assert(clz_ulong_32_or_64, sizeof(unsigned long) == 4 || sizeof(unsigned long) == 8);
 compile_assert(clz_ullong_64, sizeof(unsigned long long) == 8);
 
+// Count leading zeros.
 #ifndef CONFIG_CLZ_BUILTIN
+// Each iteration i (counting backwards) considers the least significant
+// 2^(i+1) bits of x as the current focus. It assumes x contains no 1 bits
+// outside the focus. The test determines whether there are any 1 bits in the
+// upper half (2^i bits) of the focus, setting `bits` to 2^i if there are, or
+// zero if not. Shifting by `bits` then narrows the focus to the lower 2^i bits
+// and satisfies the assumption for the next iteration. Since `bits` is always
+// a power of two, we use logical OR to accumulate a count of the number of
+// bits shifted.  At the last iteration, the most significant 1 bit of x has
+// been shifted to bit 0, and (w - 1 - count) gives the number of leading
+// zeros, where w is the word size, and count is the total shift.
 #define CLZ_STEP(typ, i) \
     bits = ((int)(BIT_CZ(typ, i) <= x)) << (i); \
     x >>= bits; \
@@ -146,6 +187,7 @@ compile_assert(clz_ullong_64, sizeof(unsigned long long) == 8);
 
 static inline int clz32(uint32_t x)
 {
+    // The iterative algorithm does not work when all bits are zero.
     if (x == 0) {
         return 32;
     }
@@ -154,6 +196,7 @@ static inline int clz32(uint32_t x)
     CLZ_STEP(uint32_t, 3);
     CLZ_STEP(uint32_t, 2);
     CLZ_STEP(uint32_t, 1);
+    // For shift is not necessary in the final iteration.
     return 31 - (count | (x >> 1));
 }
 
@@ -183,7 +226,16 @@ static int clzll_impl(unsigned long long x)
 }
 #endif // CONFIG_CLZ_BUILTIN
 
+// Count trailing zeros.
 #if !defined(CONFIG_CTZ_BUILTIN) && !defined(CONFIG_CLZ_BUILTIN)
+// Each iteration i (counting backwards) considers the least significant
+// 2^(i+1) bits of x as the current focus. The test determines whether there
+// are any 1 bits in the lower half (2^i bits) of the focus, setting `bits` to
+// zero if there are, or 2^i if not. Shifting by `bits` then narrows the focus
+// to the lower 2^i bits for the next iteration. Since `bits` is always a power
+// of two, we use logical OR to accumulate a count of the number of bits
+// shifted.  AT the last iteration, the least significant 1 bit of x has been
+// shifted to bit 0, and the total shift gives the number of trailing zeros.
 #define CTZ_STEP(typ, i) \
     bits = ((int)((x & MASK_CZ(typ, i)) == 0)) << (i); \
     x >>= bits; \
