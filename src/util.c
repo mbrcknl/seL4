@@ -234,7 +234,7 @@ static int clzll_impl(unsigned long long x)
 // zero if there are, or 2^i if not. Shifting by `bits` then narrows the focus
 // to the lower 2^i bits for the next iteration. Since `bits` is always a power
 // of two, we use logical OR to accumulate a count of the number of bits
-// shifted.  AT the last iteration, the least significant 1 bit of x has been
+// shifted. At the last iteration, the least significant 1 bit of x has been
 // shifted to bit 0, and the total shift gives the number of trailing zeros.
 #define CTZ_STEP(typ, i) \
     bits = ((int)((x & MASK_CZ(typ, i)) == 0)) << (i); \

@@ -160,7 +160,7 @@ CONST clzll(unsigned long long x)
 #endif
 }
 
-//Count trailing zeros.
+// Count trailing zeros.
 #ifdef CONFIG_CTZ_BUILTIN
 // See comments on clzl.
 /** MODIFIES: */
