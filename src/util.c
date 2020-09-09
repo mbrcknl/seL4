@@ -187,10 +187,7 @@ compile_assert(clz_ullong_64, sizeof(unsigned long long) == 8);
 
 static inline int clz32(uint32_t x)
 {
-    // The iterative algorithm does not work when all bits are zero.
-    if (x == 0) {
-        return 32;
-    }
+    // The result is undefined if all bits are zero.
     int count = 0, bits;
     CLZ_STEP(uint32_t, 4);
     CLZ_STEP(uint32_t, 3);
@@ -202,9 +199,7 @@ static inline int clz32(uint32_t x)
 
 static inline int clz64(uint64_t x)
 {
-    if (x == 0) {
-        return 64;
-    }
+    // The result is undefined if all bits are zero.
     int count = 0, bits;
     CLZ_STEP(uint64_t, 5);
     CLZ_STEP(uint64_t, 4);
@@ -243,9 +238,7 @@ static int clzll_impl(unsigned long long x)
 
 static inline int ctz32(uint32_t x)
 {
-    if (x == 0) {
-        return 32;
-    }
+    // The result is undefined if all bits are zero.
     int count = 0, bits;
     CTZ_STEP(uint32_t, 4);
     CTZ_STEP(uint32_t, 3);
@@ -256,9 +249,7 @@ static inline int ctz32(uint32_t x)
 
 static inline int ctz64(uint64_t x)
 {
-    if (x == 0) {
-        return 64;
-    }
+    // The result is undefined if all bits are zero.
     int count = 0, bits;
     CTZ_STEP(uint64_t, 5);
     CTZ_STEP(uint64_t, 4);

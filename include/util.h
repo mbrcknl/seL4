@@ -129,6 +129,7 @@ static int ctzll_impl(unsigned long long x);
     \<lbrace> \<acute>ret__long = of_nat (word_clz (x_' s)) \<rbrace>"
 */
 #endif
+// The result is undefined if x is zero.
 static inline long
 CONST clzl(unsigned long x)
 {
@@ -150,6 +151,7 @@ CONST clzl(unsigned long x)
     \<lbrace> \<acute>ret__longlong = of_nat (word_clz (x_' s)) \<rbrace>"
 */
 #endif
+// The result is undefined if x is zero.
 static inline long long
 CONST clzll(unsigned long long x)
 {
@@ -172,6 +174,7 @@ CONST clzll(unsigned long long x)
     \<lbrace> \<acute>ret__long = of_nat (word_ctz (x_' s)) \<rbrace>"
 */
 #endif
+// The result is undefined if x is zero.
 static inline long
 CONST ctzl(unsigned long x)
 {
@@ -179,14 +182,10 @@ CONST ctzl(unsigned long x)
     return __builtin_ctzl(x);
 #else
 #ifdef CONFIG_CLZ_BUILTIN
-    // If a platform has a builtin clzl, but no builtin ctzl,
-    // clzl likely provides the fastest way to calculate ctzl.
-    if (x == 0) {
-        // The calculation using clzl doesn't work when all the bits are zero.
-        return 8 * sizeof(unsigned long);
-    }
     // -x = ~x + 1, so (x & -x) isolates the least significant 1-bit of x,
     // allowing ctzl to be calculated from clzl and the word size.
+    // This is typically the fastest way to calculate ctzl on platforms
+    // that have builtin clzl but no builtin ctzl.
     return 8 * sizeof(unsigned long) - 1 - clzl(x & -x);
 #else
     return ctzl_impl(x);
@@ -205,6 +204,7 @@ CONST ctzl(unsigned long x)
     \<lbrace> \<acute>ret__longlong = of_nat (word_ctz (x_' s)) \<rbrace>"
 */
 #endif
+// The result is undefined if x is zero.
 static inline long long
 CONST ctzll(unsigned long long x)
 {
@@ -213,9 +213,6 @@ CONST ctzll(unsigned long long x)
 #else
 #ifdef CONFIG_CLZ_BUILTIN
     // See comments on ctzl.
-    if (x == 0) {
-        return 8 * sizeof(unsigned long long);;
-    }
     return 8 * sizeof(unsigned long long) - 1 - clzll(x & -x);
 #else
     return ctzll_impl(x);
