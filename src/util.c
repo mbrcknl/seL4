@@ -148,7 +148,7 @@ long PURE str_to_long(const char *str)
 // implementations, including in LLVM and GCC. Wikipedia has some references:
 // https://en.wikipedia.org/wiki/Find_first_set
 //
-// This implementation avoids branching. The test that deternines whether the
+// This implementation avoids branching. The test that determines whether the
 // upper (resp. lower) half contains any ones directly produces a number which
 // can be used for an unconditional shift. If the upper (resp. lower) half is
 // all zeros, the test produces a zero, and the shift is a no-op.  A branchless
