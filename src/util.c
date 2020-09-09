@@ -144,8 +144,8 @@ long PURE str_to_long(const char *str)
 // be used to determine the number of zeros before (resp. after) the first 1
 // bit.
 //
-// Although the details vary, the general approach is standard across several
-// library implementations. Wikipedia has some references:
+// Although the details vary, the general approach is used in several library
+// implementations, including in LLVM and GCC. Wikipedia has some references:
 // https://en.wikipedia.org/wiki/Find_first_set
 //
 // This implementation avoids branching. The test that deternines whether the
