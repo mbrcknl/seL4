@@ -179,6 +179,9 @@ CONST ctzl(unsigned long x)
     return __builtin_ctzl(x);
 #else
 #ifdef CONFIG_CLZ_BUILTIN
+    if (unlikely(x == 0)) {
+        return 8 * sizeof(unsigned long);
+    }
     // -x = ~x + 1, so (x & -x) isolates the least significant 1-bit of x,
     // allowing ctzl to be calculated from clzl and the word size.
     // This is typically the fastest way to calculate ctzl on platforms
@@ -208,6 +211,9 @@ CONST ctzll(unsigned long long x)
     return __builtin_ctzll(x);
 #else
 #ifdef CONFIG_CLZ_BUILTIN
+    if (unlikely(x == 0)) {
+        return 8 * sizeof(unsigned long long);
+    }
     // See comments on ctzl.
     return 8 * sizeof(unsigned long long) - 1 - clzll(x & -x);
 #else
