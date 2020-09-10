@@ -167,7 +167,7 @@ compile_assert(clz_ulong_32_or_64, sizeof(unsigned long) == 4 || sizeof(unsigned
 compile_assert(clz_ullong_64, sizeof(unsigned long long) == 8);
 
 // Count leading zeros.
-#ifndef CONFIG_CLZ_BUILTIN
+#ifdef CONFIG_CLZ_NO_BUILTIN
 
 // This implementation contains no branches. If the architecture provides an
 // instruction to set a register to a boolean value on a comparison, then the
@@ -299,10 +299,10 @@ unsigned clzll_impl(unsigned long long x)
 {
     return clz64(x);
 }
-#endif // CONFIG_CLZ_BUILTIN
+#endif // CONFIG_CLZ_NO_BUILTIN
 
 // Count trailing zeros.
-#if !defined(CONFIG_CTZ_BUILTIN) && !defined(CONFIG_CLZ_BUILTIN)
+#if defined(CONFIG_CTZ_NO_BUILTIN) && defined(CONFIG_CLZ_NO_BUILTIN)
 
 // See clz32_branchless for comments on branchless implementations.
 static inline unsigned ctz32(uint32_t x)
@@ -426,4 +426,4 @@ unsigned ctzll_impl(unsigned long long x)
 {
     return ctz64(x);
 }
-#endif // CONFIG_CTZ_BUILTIN || CONFIG_CLZ_BUILTIN
+#endif // CONFIG_CTZ_NO_BUILTIN && CONFIG_CLZ_NO_BUILTIN

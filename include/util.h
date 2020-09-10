@@ -99,12 +99,12 @@ long CONST char_to_long(char c);
 long PURE str_to_long(const char *str);
 
 
-#ifndef CONFIG_CLZ_BUILTIN
+#ifdef CONFIG_CLZ_NO_BUILTIN
 static unsigned clzl_impl(unsigned long x);
 static unsigned clzll_impl(unsigned long long x);
 #endif
 
-#if !defined(CONFIG_CTZ_BUILTIN) && !defined(CONFIG_CLZ_BUILTIN)
+#if defined(CONFIG_CTZ_NO_BUILTIN) && defined(CONFIG_CLZ_NO_BUILTIN)
 static unsigned ctzl_impl(unsigned long x);
 static unsigned ctzll_impl(unsigned long long x);
 #endif
@@ -113,7 +113,7 @@ static unsigned ctzll_impl(unsigned long long x);
 #define CTZL(x) __builtin_ctzl(x)
 
 // Count leading zeros.
-#ifdef CONFIG_CLZ_BUILTIN
+#ifndef CONFIG_CLZ_NO_BUILTIN
 // If we use a compiler builtin, we cannot verify it, so we use the following
 // annotations to hide the function body from the proofs, and axiomatise its
 // behaviour.
@@ -132,14 +132,14 @@ static unsigned ctzll_impl(unsigned long long x);
 static inline long
 CONST clzl(unsigned long x)
 {
-#ifdef CONFIG_CLZ_BUILTIN
-    return __builtin_clzl(x);
-#else
+#ifdef CONFIG_CLZ_NO_BUILTIN
     return clzl_impl(x);
+#else
+    return __builtin_clzl(x);
 #endif
 }
 
-#ifdef CONFIG_CLZ_BUILTIN
+#ifndef CONFIG_CLZ_NO_BUILTIN
 // See comments on clzl.
 /** MODIFIES: */
 /** DONT_TRANSLATE */
@@ -153,15 +153,15 @@ CONST clzl(unsigned long x)
 static inline long long
 CONST clzll(unsigned long long x)
 {
-#ifdef CONFIG_CLZ_BUILTIN
-    return __builtin_clzll(x);
-#else
+#ifdef CONFIG_CLZ_NO_BUILTIN
     return clzll_impl(x);
+#else
+    return __builtin_clzll(x);
 #endif
 }
 
 // Count trailing zeros.
-#ifdef CONFIG_CTZ_BUILTIN
+#ifndef CONFIG_CTZ_NO_BUILTIN
 // See comments on clzl.
 /** MODIFIES: */
 /** DONT_TRANSLATE */
@@ -175,10 +175,10 @@ CONST clzll(unsigned long long x)
 static inline long
 CONST ctzl(unsigned long x)
 {
-#ifdef CONFIG_CTZ_BUILTIN
-    return __builtin_ctzl(x);
+#ifdef CONFIG_CTZ_NO_BUILTIN
+#ifdef CONFIG_CLZ_NO_BUILTIN
+    return ctzl_impl(x);
 #else
-#ifdef CONFIG_CLZ_BUILTIN
     if (unlikely(x == 0)) {
         return 8 * sizeof(unsigned long);
     }
@@ -186,14 +186,14 @@ CONST ctzl(unsigned long x)
     // allowing ctzl to be calculated from clzl and the word size.
     // This is typically the fastest way to calculate ctzl on platforms
     // that have builtin clzl but no builtin ctzl.
-    return 8 * sizeof(unsigned long) - 1 - clzl(x & -x);
-#else
-    return ctzl_impl(x);
+    return 8 * sizeof(unsigned long) - 1 - clzl_impl(x & -x);
 #endif
+#else
+    return __builtin_ctzl(x);
 #endif
 }
 
-#ifdef CONFIG_CTZ_BUILTIN
+#ifndef CONFIG_CTZ_NO_BUILTIN
 // See comments on clzl.
 /** MODIFIES: */
 /** DONT_TRANSLATE */
@@ -207,18 +207,18 @@ CONST ctzl(unsigned long x)
 static inline long long
 CONST ctzll(unsigned long long x)
 {
-#ifdef CONFIG_CTZ_BUILTIN
-    return __builtin_ctzll(x);
+#ifdef CONFIG_CTZ_NO_BUILTIN
+#ifdef CONFIG_CLZ_NO_BUILTIN
+    return ctzll_impl(x);
 #else
-#ifdef CONFIG_CLZ_BUILTIN
     if (unlikely(x == 0)) {
         return 8 * sizeof(unsigned long long);
     }
     // See comments on ctzl.
-    return 8 * sizeof(unsigned long long) - 1 - clzll(x & -x);
-#else
-    return ctzll_impl(x);
+    return 8 * sizeof(unsigned long long) - 1 - clzll_impl(x & -x);
 #endif
+#else
+    return __builtin_ctzll(x);
 #endif
 }
 
