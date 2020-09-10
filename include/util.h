@@ -100,13 +100,13 @@ long PURE str_to_long(const char *str);
 
 
 #ifndef CONFIG_CLZ_BUILTIN
-static int clzl_impl(unsigned long x);
-static int clzll_impl(unsigned long long x);
+static unsigned clzl_impl(unsigned long x);
+static unsigned clzll_impl(unsigned long long x);
 #endif
 
 #if !defined(CONFIG_CTZ_BUILTIN) && !defined(CONFIG_CLZ_BUILTIN)
-static int ctzl_impl(unsigned long x);
-static int ctzll_impl(unsigned long long x);
+static unsigned ctzl_impl(unsigned long x);
+static unsigned ctzll_impl(unsigned long long x);
 #endif
 
 // Used for compile-time constants, so should always use the builtin.

@@ -175,8 +175,10 @@ compile_assert(clz_ullong_64, sizeof(unsigned long long) == 8);
 // preferable on architectures with deep pipelines, or when the maximum
 // priority of runnable threads frequently varies. However, note that the
 // compiler may choose to convert this to a branching implementation.
-static inline int clz32(uint32_t x)
+static inline unsigned clz32(uint32_t x)
 {
+    // Compiler builtins typically return int, but we use unsigned internally
+    // to reduce the number of guards we see in the proofs.
     unsigned count = 32;
     uint32_t mask = ((uint32_t)(-1)); // 0xffffffff
 
@@ -237,7 +239,7 @@ static inline int clz32(uint32_t x)
     return count - x;
 }
 
-static inline int clz64(uint64_t x)
+static inline unsigned clz64(uint64_t x)
 {
     unsigned count = 64;
     uint64_t mask = ((uint64_t)(-1)); // 0xffffffffffffffff
@@ -288,12 +290,12 @@ static inline int clz64(uint64_t x)
     return count - x;
 }
 
-static int clzl_impl(unsigned long x)
+unsigned clzl_impl(unsigned long x)
 {
     return sizeof(unsigned long) == 8 ? clz64(x) : clz32(x);
 }
 
-static int clzll_impl(unsigned long long x)
+unsigned clzll_impl(unsigned long long x)
 {
     return clz64(x);
 }
@@ -303,7 +305,7 @@ static int clzll_impl(unsigned long long x)
 #if !defined(CONFIG_CTZ_BUILTIN) && !defined(CONFIG_CLZ_BUILTIN)
 
 // See clz32_branchless for comments on branchless implementations.
-static inline int ctz32(uint32_t x)
+static inline unsigned ctz32(uint32_t x)
 {
     unsigned count = 1;
     uint32_t mask = ((uint32_t)(-1)); // 0xffffffff
@@ -364,7 +366,7 @@ static inline int ctz32(uint32_t x)
     return count - x;
 }
 
-static inline int ctz64(uint64_t x)
+static inline unsigned ctz64(uint64_t x)
 {
     unsigned count = 1;
     uint64_t mask = ((uint64_t)(-1)); // 0xffffffffffffffff
@@ -415,12 +417,12 @@ static inline int ctz64(uint64_t x)
     return count - x;
 }
 
-static int ctzl_impl(unsigned long x)
+unsigned ctzl_impl(unsigned long x)
 {
     return sizeof(unsigned long) == 8 ? ctz64(x) : ctz32(x);
 }
 
-static int ctzll_impl(unsigned long long x)
+unsigned ctzll_impl(unsigned long long x)
 {
     return ctz64(x);
 }
