@@ -148,67 +148,144 @@ long PURE str_to_long(const char *str)
 // implementations, including in LLVM and GCC. Wikipedia has some references:
 // https://en.wikipedia.org/wiki/Find_first_set
 //
-// This implementation avoids branching. The test that determines whether the
-// upper (resp. lower) half contains any ones directly produces a number which
-// can be used for an unconditional shift. If the upper (resp. lower) half is
-// all zeros, the test produces a zero, and the shift is a no-op.  A branchless
-// implementation has the disadvantage that it requires more instructions to
-// execute than one which branches, but the advantage is that none will be
-// mispredicted branches. Whether this is a good tradeoff depends on the branch
-// predictability and the architecture's pipeline depth. The most critical use
-// of clzl in the kernel is in the scheduler priority queue. In the absence of
-// a concrete application and hardware implementation to evaluate the tradeoff,
-// we somewhat arbitrarily choose a branchless implementation.
+// The current implementation avoids branching. The test that determines
+// whether the upper (resp. lower) half contains any ones directly produces a
+// number which can be used for an unconditional shift. If the upper (resp.
+// lower) half is all zeros, the test produces a zero, and the shift is a
+// no-op. A branchless implementation has the disadvantage that it requires
+// more instructions to execute than one which branches, but the advantage is
+// that none will be mispredicted branches. Whether this is a good tradeoff
+// depends on the branch predictability and the architecture's pipeline depth.
+// The most critical use of clzl in the kernel is in the scheduler priority
+// queue. In the absence of a concrete application and hardware implementation
+// to evaluate the tradeoff, we somewhat arbitrarily choose a branchless
+// implementation. In futuree, we might provide a configuration option for a
+// branching implementation.
 
-// Equivalent to BIT(1 << i) and MASK(1 << i), also parameterised by type.
-#define BIT_CZ(typ, i) (((typ)1) << (1 << (i)))
-#define MASK_CZ(typ, i) (BIT_CZ(typ, i) - ((typ)1))
-
-// Check some assumptions made by the implementations.
+// Check some assumptions made by the implementations:
 compile_assert(clz_ulong_32_or_64, sizeof(unsigned long) == 4 || sizeof(unsigned long) == 8);
 compile_assert(clz_ullong_64, sizeof(unsigned long long) == 8);
 
 // Count leading zeros.
 #ifndef CONFIG_CLZ_BUILTIN
-// Each iteration i (counting backwards) considers the least significant
-// 2^(i+1) bits of x as the current focus. It assumes x contains no 1 bits
-// outside the focus. The test determines whether there are any 1 bits in the
-// upper half (2^i bits) of the focus, setting `bits` to 2^i if there are, or
-// zero if not. Shifting by `bits` then narrows the focus to the lower 2^i bits
-// and satisfies the assumption for the next iteration. Since `bits` is always
-// a power of two, we use logical OR to accumulate a count of the number of
-// bits shifted.  At the last iteration, the most significant 1 bit of x has
-// been shifted to bit 0, and (w - 1 - count) gives the number of leading
-// zeros, where w is the word size, and count is the total shift.
-#define CLZ_STEP(typ, i) \
-    bits = ((int)(BIT_CZ(typ, i) <= x)) << (i); \
-    x >>= bits; \
-    count |= bits;
 
-static inline int clz32(uint32_t x)
+// This implementation contains no branches, if the architecture provides an
+// instruction to set a register to a boolean value on a comparison. The
+// branchless implementation might be preferable on architectures with deep
+// pipelines, or when the maximum priority of runnable threads frequently
+// varies.
+static inline int clz32_branchless(uint32_t x)
 {
-    // The result is undefined if all bits are zero.
-    int count = 0, bits;
-    CLZ_STEP(uint32_t, 4);
-    CLZ_STEP(uint32_t, 3);
-    CLZ_STEP(uint32_t, 2);
-    CLZ_STEP(uint32_t, 1);
-    // For shift is not necessary in the final iteration.
-    return 31 - (count | (x >> 1));
+    unsigned count = 32;
+    uint32_t mask = ((uint32_t)(-1)); // 0xffffffff
+
+    // Each iteration i (counting backwards) considers the least significant
+    // 2^(i+1) bits of x as the current focus. At the first iteration, the
+    // focus is the whole input. Each iteration assumes x contains no 1 bits
+    // outside its focus. The iteration contains a test which determines
+    // whether there are any 1 bits in the upper half (2^i bits) of the focus,
+    // setting `bits` to 2^i if there are, or zero if not. Shifting by `bits`
+    // then narrows the focus to the lower 2^i bits and satisfies the
+    // assumption for the next iteration. After the final iteration, the focus
+    // is just the least significant bit, and the most significsnt 1 bit of the
+    // original input (if any) has been shifted into this position. The leading
+    // zero count can be determined from the total shift.
+    //
+    // The iterations are given a very regular structure to facilitate proofs,
+    // while also generating reasonably efficient binary code.
+
+    if (1) {
+        // iteration 4
+        mask >>= 16; // 0x0000ffff
+        unsigned bits = ((unsigned)(mask < x)) << 4; // [0, 16]
+        x >>= bits; // <= 0x0000ffff
+        count -= bits; // [16, 32]
+    }
+    if (1) {
+        // iteration 3
+        mask >>= 8; // 0x000000ff
+        unsigned bits = ((unsigned)(mask < x)) << 3; // [0, 8]
+        x >>= bits; // <= 0x000000ff
+        count -= bits; // [8, 16, 24, 32]
+    }
+    if (1) {
+        // iteration 2
+        mask >>= 4; // 0x0000000f
+        unsigned bits = ((unsigned)(mask < x)) << 2; // [0, 4]
+        x >>= bits; // <= 0x0000000f
+        count -= bits; // [4, 8, 12, ..., 32]
+    }
+    if (1) {
+        // iteration 1
+        mask >>= 2; // 0x00000003
+        unsigned bits = ((unsigned)(mask < x)) << 1; // [0, 2]
+        x >>= bits; // <= 0x00000003
+        count -= bits; // [2, 4, 6, ..., 32]
+    }
+    if (1) {
+        // iteration 0
+        mask >>= 1; // 0x00000001
+        unsigned bits = ((unsigned)(mask < x)) << 0; // [0, 1]
+        x >>= bits; // <= 0x00000001
+        count -= bits; // [1, 2, 3, ..., 32]
+    }
+
+    // If the original input was zero, there will have been no shifts, so this
+    // gives a result of 32. Otherwise, x is now exactly 1, so subtracting from
+    // count gives a result from [0, 1, 2, ..., 31].
+    return count - x;
 }
 
-static inline int clz64(uint64_t x)
+static inline int clz64_branchless(uint64_t x)
 {
-    // The result is undefined if all bits are zero.
-    int count = 0, bits;
-    CLZ_STEP(uint64_t, 5);
-    CLZ_STEP(uint64_t, 4);
-    CLZ_STEP(uint64_t, 3);
-    CLZ_STEP(uint64_t, 2);
-    CLZ_STEP(uint64_t, 1);
-    return 63 - (count | (x >> 1));
+    unsigned count = 64;
+    uint64_t mask = ((uint64_t)(-1)); // 0xffffffffffffffff
+
+    if (1) {
+        // iteration 5
+        mask >>= 32; // 0x00000000ffffffff
+        unsigned bits = ((unsigned)(mask < x)) << 5; // [0, 32]
+        x >>= bits; // <= 0x00000000ffffffff
+        count -= bits; // [32, 64]
+    }
+    if (1) {
+        // iteration 4
+        mask >>= 16; // 0x000000000000ffff
+        unsigned bits = ((unsigned)(mask < x)) << 4; // [0, 16]
+        x >>= bits; // <= 0x000000000000ffff
+        count -= bits; // [16, 32, 48, 64]
+    }
+    if (1) {
+        // iteration 3
+        mask >>= 8; // 0x00000000000000ff
+        unsigned bits = ((unsigned)(mask < x)) << 3; // [0, 8]
+        x >>= bits; // <= 0x00000000000000ff
+        count -= bits; // [8, 16, 24, ..., 64]
+    }
+    if (1) {
+        // iteration 2
+        mask >>= 4; // 0x000000000000000f
+        unsigned bits = ((unsigned)(mask < x)) << 2; // [0, 4]
+        x >>= bits; // <= 0x000000000000000f
+        count -= bits; // [4, 8, 12, ..., 64]
+    }
+    if (1) {
+        // iteration 1
+        mask >>= 2; // 0x0000000000000003
+        unsigned bits = ((unsigned)(mask < x)) << 1; // [0, 2]
+        x >>= bits; // <= 0x0000000000000003
+        count -= bits; // [2, 4, 6, ..., 64]
+    }
+    if (1) {
+        // iteration 0
+        mask >>= 1; // 0x0000000000000001
+        unsigned bits = ((unsigned)(mask < x)) << 0; // [0, 1]
+        x >>= bits; // <= 0x0000000000000001
+        count -= bits; // [1, 2, 3, ..., 64]
+    }
+
+    return count - x;
 }
-#undef CLZ_STEP
 
 static int clzl_impl(unsigned long x)
 {
@@ -223,53 +300,127 @@ static int clzll_impl(unsigned long long x)
 
 // Count trailing zeros.
 #if !defined(CONFIG_CTZ_BUILTIN) && !defined(CONFIG_CLZ_BUILTIN)
-// Each iteration i (counting backwards) considers the least significant
-// 2^(i+1) bits of x as the current focus. The test determines whether there
-// are any 1 bits in the lower half (2^i bits) of the focus, setting `bits` to
-// zero if there are, or 2^i if not. Shifting by `bits` then narrows the focus
-// to the lower 2^i bits for the next iteration. Since `bits` is always a power
-// of two, we use logical OR to accumulate a count of the number of bits
-// shifted. At the last iteration, the least significant 1 bit of x has been
-// shifted to bit 0, and the total shift gives the number of trailing zeros.
-#define CTZ_STEP(typ, i) \
-    bits = ((int)((x & MASK_CZ(typ, i)) == 0)) << (i); \
-    x >>= bits; \
-    count |= bits;
 
-static inline int ctz32(uint32_t x)
+// See clz32_branchless for comments on branchless implementations.
+static inline int ctz32_branchless(uint32_t x)
 {
-    // The result is undefined if all bits are zero.
-    int count = 0, bits;
-    CTZ_STEP(uint32_t, 4);
-    CTZ_STEP(uint32_t, 3);
-    CTZ_STEP(uint32_t, 2);
-    CTZ_STEP(uint32_t, 1);
-    return count | ((x & 1) == 0);
+    unsigned count = 1;
+    uint32_t mask = ((uint32_t)(-1)); // 0xffffffff
+
+    // Each iteration i (counting backwards) considers the least significant
+    // 2^(i+1) bits of x as the current focus. At the first iteration, the
+    // focus is the whole input. The iteration contains a test which determines
+    // whether there are any 1 bits in the lower half (2^i bits) of the focus,
+    // setting `bits` to zero if there are, or 2^i if not. Shifting by `bits`
+    // then narrows the focus to the lower 2^i bits for the next iteration.
+    // After the final iteration, the focus is just the least significant bit,
+    // and the least significsnt 1 bit of the original input (if any) has been
+    // shifted into this position. The trailing zero count can be determined
+    // from the total shift.
+    //
+    // The iterations are given a very regular structure to facilitate proofs,
+    // while also generating reasonably efficient binary code.
+
+    if (1) {
+        // iteration 4
+        mask >>= 16; // 0x0000ffff
+        unsigned bits = ((unsigned)((x & mask) == 0)) << 4; // [0, 16]
+        x >>= bits; // <= 0x0000ffff
+        count += bits; // [1, 17]
+    }
+    if (1) {
+        // iteration 3
+        mask >>= 8; // 0x000000ff
+        unsigned bits = ((unsigned)((x & mask) == 0)) << 3; // [0, 8]
+        x >>= bits; // <= 0x000000ff
+        count += bits; // [1, 9, 17, 25]
+    }
+    if (1) {
+        // iteration 2
+        mask >>= 4; // 0x0000000f
+        unsigned bits = ((unsigned)((x & mask) == 0)) << 2; // [0, 4]
+        x >>= bits; // <= 0x0000000f
+        count += bits; // [1, 5, 9, ..., 29]
+    }
+    if (1) {
+        // iteration 1
+        mask >>= 2; // 0x00000003
+        unsigned bits = ((unsigned)((x & mask) == 0)) << 1; // [0, 2]
+        x >>= bits; // <= 0x00000003
+        count += bits; // [1, 3, 5, ..., 31]
+    }
+    if (1) {
+        // iteration 0
+        mask >>= 1; // 0x00000001
+        unsigned bits = ((unsigned)((x & mask) == 0)) << 0; // [0, 1]
+        x >>= bits; // <= 0x00000001
+        count += bits; // [1, 2, 3, ..., 32]
+    }
+
+    // If the original input was zero, there will have been no shifts, so this
+    // gives a result of 32. Otherwise, x is now exactly 1, so subtracting from
+    // count gives a result from [0, 1, 2, ..., 31].
+    return count - x;
 }
 
-static inline int ctz64(uint64_t x)
+static inline int ctz64_branchless(uint64_t x)
 {
-    // The result is undefined if all bits are zero.
-    int count = 0, bits;
-    CTZ_STEP(uint64_t, 5);
-    CTZ_STEP(uint64_t, 4);
-    CTZ_STEP(uint64_t, 3);
-    CTZ_STEP(uint64_t, 2);
-    CTZ_STEP(uint64_t, 1);
-    return count | ((x & 1) == 0);
+    unsigned count = 1;
+    uint64_t mask = ((uint64_t)(-1)); // 0xffffffffffffffff
+
+    if (1) {
+        // iteration 5
+        mask >>= 32; // 0x00000000ffffffff
+        unsigned bits = ((unsigned)((x & mask) == 0)) << 5; // [0, 32]
+        x >>= bits; // <= 0x00000000ffffffff
+        count += bits; // [1, 33]
+    }
+    if (1) {
+        // iteration 4
+        mask >>= 16; // 0x000000000000ffff
+        unsigned bits = ((unsigned)((x & mask) == 0)) << 4; // [0, 16]
+        x >>= bits; // <= 0x000000000000ffff
+        count += bits; // [1, 17, 33, 49]
+    }
+    if (1) {
+        // iteration 3
+        mask >>= 8; // 0x00000000000000ff
+        unsigned bits = ((unsigned)((x & mask) == 0)) << 3; // [0, 8]
+        x >>= bits; // <= 0x00000000000000ff
+        count += bits; // [1, 9, 17, ..., 57]
+    }
+    if (1) {
+        // iteration 2
+        mask >>= 4; // 0x000000000000000f
+        unsigned bits = ((unsigned)((x & mask) == 0)) << 2; // [0, 4]
+        x >>= bits; // <= 0x000000000000000f
+        count += bits; // [1, 5, 9, ..., 61]
+    }
+    if (1) {
+        // iteration 1
+        mask >>= 2; // 0x0000000000000003
+        unsigned bits = ((unsigned)((x & mask) == 0)) << 1; // [0, 2]
+        x >>= bits; // <= 0x0000000000000003
+        count += bits; // [1, 3, 5, ..., 63]
+    }
+    if (1) {
+        // iteration 0
+        mask >>= 1; // 0x0000000000000001
+        unsigned bits = ((unsigned)((x & mask) == 0)) << 0; // [0, 1]
+        x >>= bits; // <= 0x0000000000000001
+        count += bits; // [1, 2, 3, ..., 64]
+    }
+
+    return count - x;
 }
-#undef CTZ_STEP
 
 static int ctzl_impl(unsigned long x)
 {
-    return sizeof(unsigned long) == 8 ? ctz64(x) : ctz32(x);
+    return sizeof(unsigned long) == 8 ? ctz64_branchless(x) : ctz32_branchless(x);
 }
 
 static int ctzll_impl(unsigned long long x)
 {
-    return ctz64(x);
+    return ctz64_branchless(x);
 }
 #endif // CONFIG_CTZ_BUILTIN || CONFIG_CLZ_BUILTIN
-
-#undef MASK_CZ
-#undef BIT_CZ

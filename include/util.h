@@ -129,7 +129,6 @@ static int ctzll_impl(unsigned long long x);
     \<lbrace> \<acute>ret__long = of_nat (word_clz (x_' s)) \<rbrace>"
 */
 #endif
-// The result is undefined if x is zero.
 static inline long
 CONST clzl(unsigned long x)
 {
@@ -151,7 +150,6 @@ CONST clzl(unsigned long x)
     \<lbrace> \<acute>ret__longlong = of_nat (word_clz (x_' s)) \<rbrace>"
 */
 #endif
-// The result is undefined if x is zero.
 static inline long long
 CONST clzll(unsigned long long x)
 {
@@ -174,7 +172,6 @@ CONST clzll(unsigned long long x)
     \<lbrace> \<acute>ret__long = of_nat (word_ctz (x_' s)) \<rbrace>"
 */
 #endif
-// The result is undefined if x is zero.
 static inline long
 CONST ctzl(unsigned long x)
 {
@@ -204,7 +201,6 @@ CONST ctzl(unsigned long x)
     \<lbrace> \<acute>ret__longlong = of_nat (word_ctz (x_' s)) \<rbrace>"
 */
 #endif
-// The result is undefined if x is zero.
 static inline long long
 CONST ctzll(unsigned long long x)
 {
