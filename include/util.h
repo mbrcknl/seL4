@@ -124,9 +124,9 @@ static unsigned ctzll_impl(unsigned long long x);
 /** DONT_TRANSLATE */
 /** FNSPEC clzl_spec:
   "\<forall>s. \<Gamma> \<turnstile>
-    {\<sigma>. s = \<sigma> \<and> x_' s \<noteq> 0 }
+    {\<sigma>. s = \<sigma> \<and> x__unsigned_long_' s \<noteq> 0 }
       \<acute>ret__long :== PROC clzl(\<acute>x)
-    \<lbrace> \<acute>ret__long = of_nat (word_clz (x_' s)) \<rbrace>"
+    \<lbrace> \<acute>ret__long = of_nat (word_clz (x__unsigned_long_' s)) \<rbrace>"
 */
 #endif
 static inline long
@@ -145,9 +145,9 @@ CONST clzl(unsigned long x)
 /** DONT_TRANSLATE */
 /** FNSPEC clzll_spec:
   "\<forall>s. \<Gamma> \<turnstile>
-    {\<sigma>. s = \<sigma> \<and> x_' s \<noteq> 0 }
+    {\<sigma>. s = \<sigma> \<and> x__unsigned_longlong_' s \<noteq> 0 }
       \<acute>ret__longlong :== PROC clzll(\<acute>x)
-    \<lbrace> \<acute>ret__longlong = of_nat (word_clz (x_' s)) \<rbrace>"
+    \<lbrace> \<acute>ret__longlong = of_nat (word_clz (x__unsigned_longlong_' s)) \<rbrace>"
 */
 #endif
 static inline long long
@@ -167,9 +167,9 @@ CONST clzll(unsigned long long x)
 /** DONT_TRANSLATE */
 /** FNSPEC ctzl_spec:
   "\<forall>s. \<Gamma> \<turnstile>
-    {\<sigma>. s = \<sigma> \<and> x_' s \<noteq> 0 }
+    {\<sigma>. s = \<sigma> \<and> x__unsigned_long_' s \<noteq> 0 }
       \<acute>ret__long :== PROC ctzl(\<acute>x)
-    \<lbrace> \<acute>ret__long = of_nat (word_ctz (x_' s)) \<rbrace>"
+    \<lbrace> \<acute>ret__long = of_nat (word_ctz (x__unsigned_long_' s)) \<rbrace>"
 */
 #endif
 static inline long
@@ -199,9 +199,9 @@ CONST ctzl(unsigned long x)
 /** DONT_TRANSLATE */
 /** FNSPEC ctzll_spec:
   "\<forall>s. \<Gamma> \<turnstile>
-    {\<sigma>. s = \<sigma> \<and> x_' s \<noteq> 0 }
+    {\<sigma>. s = \<sigma> \<and> x__unsigned_longlong_' s \<noteq> 0 }
       \<acute>ret__longlong :== PROC ctzll(\<acute>x)
-    \<lbrace> \<acute>ret__longlong = of_nat (word_ctz (x_' s)) \<rbrace>"
+    \<lbrace> \<acute>ret__longlong = of_nat (word_ctz (x__unsigned_longlong_' s)) \<rbrace>"
 */
 #endif
 static inline long long
