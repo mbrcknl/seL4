@@ -159,8 +159,8 @@ long PURE str_to_long(const char *str)
 // The most critical use of clzl in the kernel is in the scheduler priority
 // queue. In the absence of a concrete application and hardware implementation
 // to evaluate the tradeoff, we somewhat arbitrarily choose a branchless
-// implementation. In futuree, we might provide a configuration option for a
-// branching implementation.
+// implementation. In any case, the compiler might convert this to a branching
+// binary.
 
 // Check some assumptions made by the implementations:
 compile_assert(clz_ulong_32_or_64, sizeof(unsigned long) == 4 || sizeof(unsigned long) == 8);
@@ -169,12 +169,13 @@ compile_assert(clz_ullong_64, sizeof(unsigned long long) == 8);
 // Count leading zeros.
 #ifndef CONFIG_CLZ_BUILTIN
 
-// This implementation contains no branches, if the architecture provides an
-// instruction to set a register to a boolean value on a comparison. The
-// branchless implementation might be preferable on architectures with deep
-// pipelines, or when the maximum priority of runnable threads frequently
-// varies.
-static inline int clz32_branchless(uint32_t x)
+// This implementation contains no branches. If the architecture provides an
+// instruction to set a register to a boolean value on a comparison, then the
+// binary might also avoid branching. A branchless implementation might be
+// preferable on architectures with deep pipelines, or when the maximum
+// priority of runnable threads frequently varies. However, note that the
+// compiler may choose to convert this to a branching implementation.
+static inline int clz32(uint32_t x)
 {
     unsigned count = 32;
     uint32_t mask = ((uint32_t)(-1)); // 0xffffffff
@@ -236,7 +237,7 @@ static inline int clz32_branchless(uint32_t x)
     return count - x;
 }
 
-static inline int clz64_branchless(uint64_t x)
+static inline int clz64(uint64_t x)
 {
     unsigned count = 64;
     uint64_t mask = ((uint64_t)(-1)); // 0xffffffffffffffff
@@ -302,7 +303,7 @@ static int clzll_impl(unsigned long long x)
 #if !defined(CONFIG_CTZ_BUILTIN) && !defined(CONFIG_CLZ_BUILTIN)
 
 // See clz32_branchless for comments on branchless implementations.
-static inline int ctz32_branchless(uint32_t x)
+static inline int ctz32(uint32_t x)
 {
     unsigned count = 1;
     uint32_t mask = ((uint32_t)(-1)); // 0xffffffff
@@ -363,7 +364,7 @@ static inline int ctz32_branchless(uint32_t x)
     return count - x;
 }
 
-static inline int ctz64_branchless(uint64_t x)
+static inline int ctz64(uint64_t x)
 {
     unsigned count = 1;
     uint64_t mask = ((uint64_t)(-1)); // 0xffffffffffffffff
@@ -416,11 +417,11 @@ static inline int ctz64_branchless(uint64_t x)
 
 static int ctzl_impl(unsigned long x)
 {
-    return sizeof(unsigned long) == 8 ? ctz64_branchless(x) : ctz32_branchless(x);
+    return sizeof(unsigned long) == 8 ? ctz64(x) : ctz32(x);
 }
 
 static int ctzll_impl(unsigned long long x)
 {
-    return ctz64_branchless(x);
+    return ctz64(x);
 }
 #endif // CONFIG_CTZ_BUILTIN || CONFIG_CLZ_BUILTIN
