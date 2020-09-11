@@ -200,35 +200,35 @@ static inline unsigned clz32(uint32_t x)
     // The `if (1)` blocks make it easier to reason by chunks in the proofs.
     if (1) {
         // iteration 4
-        mask >>= 16; // 0x0000ffff
+        mask >>= (1 << 4); // 0x0000ffff
         unsigned bits = ((unsigned)(mask < x)) << 4; // [0, 16]
         x >>= bits; // <= 0x0000ffff
         count -= bits; // [16, 32]
     }
     if (1) {
         // iteration 3
-        mask >>= 8; // 0x000000ff
+        mask >>= (1 << 3); // 0x000000ff
         unsigned bits = ((unsigned)(mask < x)) << 3; // [0, 8]
         x >>= bits; // <= 0x000000ff
         count -= bits; // [8, 16, 24, 32]
     }
     if (1) {
         // iteration 2
-        mask >>= 4; // 0x0000000f
+        mask >>= (1 << 2); // 0x0000000f
         unsigned bits = ((unsigned)(mask < x)) << 2; // [0, 4]
         x >>= bits; // <= 0x0000000f
         count -= bits; // [4, 8, 12, ..., 32]
     }
     if (1) {
         // iteration 1
-        mask >>= 2; // 0x00000003
+        mask >>= (1 << 1); // 0x00000003
         unsigned bits = ((unsigned)(mask < x)) << 1; // [0, 2]
         x >>= bits; // <= 0x00000003
         count -= bits; // [2, 4, 6, ..., 32]
     }
     if (1) {
         // iteration 0
-        mask >>= 1; // 0x00000001
+        mask >>= (1 << 0); // 0x00000001
         unsigned bits = ((unsigned)(mask < x)) << 0; // [0, 1]
         x >>= bits; // <= 0x00000001
         count -= bits; // [1, 2, 3, ..., 32]
@@ -251,42 +251,42 @@ static inline unsigned clz64(uint64_t x)
     // developed for clz32.
     if (1) {
         // iteration 5
-        mask >>= 32; // 0x00000000ffffffff
+        mask >>= (1 << 5); // 0x00000000ffffffff
         unsigned bits = ((unsigned)(mask < x)) << 5; // [0, 32]
         x >>= bits; // <= 0x00000000ffffffff
         count -= bits; // [32, 64]
     }
     if (1) {
         // iteration 4
-        mask >>= 16; // 0x000000000000ffff
+        mask >>= (1 << 4); // 0x000000000000ffff
         unsigned bits = ((unsigned)(mask < x)) << 4; // [0, 16]
         x >>= bits; // <= 0x000000000000ffff
         count -= bits; // [16, 32, 48, 64]
     }
     if (1) {
         // iteration 3
-        mask >>= 8; // 0x00000000000000ff
+        mask >>= (1 << 3); // 0x00000000000000ff
         unsigned bits = ((unsigned)(mask < x)) << 3; // [0, 8]
         x >>= bits; // <= 0x00000000000000ff
         count -= bits; // [8, 16, 24, ..., 64]
     }
     if (1) {
         // iteration 2
-        mask >>= 4; // 0x000000000000000f
+        mask >>= (1 << 2); // 0x000000000000000f
         unsigned bits = ((unsigned)(mask < x)) << 2; // [0, 4]
         x >>= bits; // <= 0x000000000000000f
         count -= bits; // [4, 8, 12, ..., 64]
     }
     if (1) {
         // iteration 1
-        mask >>= 2; // 0x0000000000000003
+        mask >>= (1 << 1); // 0x0000000000000003
         unsigned bits = ((unsigned)(mask < x)) << 1; // [0, 2]
         x >>= bits; // <= 0x0000000000000003
         count -= bits; // [2, 4, 6, ..., 64]
     }
     if (1) {
         // iteration 0
-        mask >>= 1; // 0x0000000000000001
+        mask >>= (1 << 0); // 0x0000000000000001
         unsigned bits = ((unsigned)(mask < x)) << 0; // [0, 1]
         x >>= bits; // <= 0x0000000000000001
         count -= bits; // [1, 2, 3, ..., 64]
@@ -331,35 +331,35 @@ static inline unsigned ctz32(uint32_t x)
 
     if (1) {
         // iteration 4
-        mask >>= 16; // 0x0000ffff
+        mask >>= (1 << 4); // 0x0000ffff
         unsigned bits = ((unsigned)((x & mask) == 0)) << 4; // [0, 16]
         x >>= bits; // <= 0x0000ffff
         count += bits; // [1, 17]
     }
     if (1) {
         // iteration 3
-        mask >>= 8; // 0x000000ff
+        mask >>= (1 << 3); // 0x000000ff
         unsigned bits = ((unsigned)((x & mask) == 0)) << 3; // [0, 8]
         x >>= bits; // <= 0x000000ff
         count += bits; // [1, 9, 17, 25]
     }
     if (1) {
         // iteration 2
-        mask >>= 4; // 0x0000000f
+        mask >>= (1 << 2); // 0x0000000f
         unsigned bits = ((unsigned)((x & mask) == 0)) << 2; // [0, 4]
         x >>= bits; // <= 0x0000000f
         count += bits; // [1, 5, 9, ..., 29]
     }
     if (1) {
         // iteration 1
-        mask >>= 2; // 0x00000003
+        mask >>= (1 << 1); // 0x00000003
         unsigned bits = ((unsigned)((x & mask) == 0)) << 1; // [0, 2]
         x >>= bits; // <= 0x00000003
         count += bits; // [1, 3, 5, ..., 31]
     }
     if (1) {
         // iteration 0
-        mask >>= 1; // 0x00000001
+        mask >>= (1 << 0); // 0x00000001
         unsigned bits = ((unsigned)((x & mask) == 0)) << 0; // [0, 1]
         x >>= bits; // <= 0x00000001
         count += bits; // [1, 2, 3, ..., 32]
@@ -378,42 +378,42 @@ static inline unsigned ctz64(uint64_t x)
 
     if (1) {
         // iteration 5
-        mask >>= 32; // 0x00000000ffffffff
+        mask >>= (1 << 5); // 0x00000000ffffffff
         unsigned bits = ((unsigned)((x & mask) == 0)) << 5; // [0, 32]
         x >>= bits; // <= 0x00000000ffffffff
         count += bits; // [1, 33]
     }
     if (1) {
         // iteration 4
-        mask >>= 16; // 0x000000000000ffff
+        mask >>= (1 << 4); // 0x000000000000ffff
         unsigned bits = ((unsigned)((x & mask) == 0)) << 4; // [0, 16]
         x >>= bits; // <= 0x000000000000ffff
         count += bits; // [1, 17, 33, 49]
     }
     if (1) {
         // iteration 3
-        mask >>= 8; // 0x00000000000000ff
+        mask >>= (1 << 3); // 0x00000000000000ff
         unsigned bits = ((unsigned)((x & mask) == 0)) << 3; // [0, 8]
         x >>= bits; // <= 0x00000000000000ff
         count += bits; // [1, 9, 17, ..., 57]
     }
     if (1) {
         // iteration 2
-        mask >>= 4; // 0x000000000000000f
+        mask >>= (1 << 2); // 0x000000000000000f
         unsigned bits = ((unsigned)((x & mask) == 0)) << 2; // [0, 4]
         x >>= bits; // <= 0x000000000000000f
         count += bits; // [1, 5, 9, ..., 61]
     }
     if (1) {
         // iteration 1
-        mask >>= 2; // 0x0000000000000003
+        mask >>= (1 << 1); // 0x0000000000000003
         unsigned bits = ((unsigned)((x & mask) == 0)) << 1; // [0, 2]
         x >>= bits; // <= 0x0000000000000003
         count += bits; // [1, 3, 5, ..., 63]
     }
     if (1) {
         // iteration 0
-        mask >>= 1; // 0x0000000000000001
+        mask >>= (1 << 0); // 0x0000000000000001
         unsigned bits = ((unsigned)((x & mask) == 0)) << 0; // [0, 1]
         x >>= bits; // <= 0x0000000000000001
         count += bits; // [1, 2, 3, ..., 64]
