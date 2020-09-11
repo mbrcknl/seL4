@@ -178,19 +178,23 @@ static inline long
 CONST ctzl(unsigned long x)
 {
 #ifdef CONFIG_CTZ_NO_BUILTIN
+// If there is a builtin CLZ, but no builtin CTZ, then CTZ will be implemented
+// using the builtin CLZ, rather than the long-form implementation.
+// This is typically the fastest way to calculate ctzl on such platforms.
 #ifdef CONFIG_CLZ_NO_BUILTIN
+    // Here, there are no builtins we can use.
     return sizeof(unsigned long) == 8 ? ctz64(x) : ctz32(x);
 #else
+    // Here, we have __builtin_clzl, but no __builtin_ctzl.
     if (unlikely(x == 0)) {
         return 8 * sizeof(unsigned long);
     }
     // -x = ~x + 1, so (x & -x) isolates the least significant 1-bit of x,
     // allowing ctzl to be calculated from clzl and the word size.
-    // This is typically the fastest way to calculate ctzl on platforms
-    // that have builtin clzl but no builtin ctzl.
     return 8 * sizeof(unsigned long) - 1 - __builtin_clzl(x & -x);
 #endif
 #else
+    // Here, we have __builtin_ctzl.
     return __builtin_ctzl(x);
 #endif
 }
@@ -210,6 +214,7 @@ static inline long long
 CONST ctzll(unsigned long long x)
 {
 #ifdef CONFIG_CTZ_NO_BUILTIN
+// See comments on ctzl.
 #ifdef CONFIG_CLZ_NO_BUILTIN
     return ctz64(x);
 #else
