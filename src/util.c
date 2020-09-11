@@ -245,6 +245,10 @@ static inline unsigned clz64(uint64_t x)
     unsigned count = 64;
     uint64_t mask = ((uint64_t)(-1)); // 0xffffffffffffffff
 
+    // Although we could implement this using clz32, we spell out the
+    // iterations in full for slightly better code generation at low
+    // optimisation levels, and to allow us to reuse the proof machinery we
+    // developed for clz32.
     if (1) {
         // iteration 5
         mask >>= 32; // 0x00000000ffffffff
