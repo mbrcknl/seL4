@@ -100,15 +100,15 @@ long PURE str_to_long(const char *str);
 
 
 #ifdef CONFIG_CLZ_NO_BUILTIN
-static unsigned clz32(uint32_t x);
-static unsigned clz64(uint64_t x);
+static CONST unsigned clz32(uint32_t x);
+static CONST unsigned clz64(uint64_t x);
 #endif
 
 // If there is a builtin CLZ, but no builtin CTZ, then CTZ will be implemented
 // using the builtin CLZ, rather than the long-form implementation.
 #if defined(CONFIG_CTZ_NO_BUILTIN) && defined(CONFIG_CLZ_NO_BUILTIN)
-static unsigned ctz32(uint32_t x);
-static unsigned ctz64(uint64_t x);
+static CONST unsigned ctz32(uint32_t x);
+static CONST unsigned ctz64(uint64_t x);
 #endif
 
 // Used for compile-time constants, so should always use the builtin.
