@@ -188,9 +188,7 @@ CONST ctzl(unsigned long x)
     // allowing ctzl to be calculated from clzl and the word size.
     // This is typically the fastest way to calculate ctzl on platforms
     // that have builtin clzl but no builtin ctzl.
-    // We call `clzl` here to get the builtin implementation without
-    // any extra implicit type casts.
-    return 8 * sizeof(unsigned long) - 1 - clzl(x & -x);
+    return 8 * sizeof(unsigned long) - 1 - __builtin_clzl(x & -x);
 #endif
 #else
     return __builtin_ctzl(x);
@@ -219,7 +217,7 @@ CONST ctzll(unsigned long long x)
         return 8 * sizeof(unsigned long long);
     }
     // See comments on ctzl.
-    return 8 * sizeof(unsigned long long) - 1 - clzll(x & -x);
+    return 8 * sizeof(unsigned long long) - 1 - __builtin_clzll(x & -x);
 #endif
 #else
     return __builtin_ctzll(x);
