@@ -197,6 +197,7 @@ static inline unsigned clz32(uint32_t x)
     // The iterations are given a very regular structure to facilitate proofs,
     // while also generating reasonably efficient binary code.
 
+    // The `if (1)` blocks make it easier to reason by chunks in the proofs.
     if (1) {
         // iteration 4
         mask >>= 16; // 0x0000ffff
