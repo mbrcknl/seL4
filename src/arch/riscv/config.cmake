@@ -27,6 +27,11 @@ config_option(
     DEPENDS "KernelArchRiscV"
 )
 
+# RISC-V currently has no instruction to count leading/trailing zeros,
+# so we provide verified library implementations.
+config_set(KernelClzNoBuiltin CLZ_NO_BUILTIN ON)
+config_set(KernelCtzNoBuiltin CTZ_NO_BUILTIN ON)
+
 if(KernelSel4ArchRiscV32)
     set(KernelPTLevels 2 CACHE STRING "" FORCE)
 endif()
