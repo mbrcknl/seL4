@@ -408,3 +408,7 @@ unsigned ctz64(uint64_t x)
     return count - x;
 }
 #endif // CONFIG_CTZ_NO_BUILTIN && CONFIG_CLZ_NO_BUILTIN
+
+// Check some assumptions made by the CLZ and CTZ header functions:
+compile_assert(clz_ulong_32_or_64, sizeof(unsigned long) == 4 || sizeof(unsigned long) == 8);
+compile_assert(clz_ullong_64, sizeof(unsigned long long) == 8);

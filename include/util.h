@@ -111,10 +111,6 @@ static unsigned ctz32(uint32_t x);
 static unsigned ctz64(uint64_t x);
 #endif
 
-// Check some assumptions made by the implementations:
-compile_assert(clz_ulong_32_or_64, sizeof(unsigned long) == 4 || sizeof(unsigned long) == 8);
-compile_assert(clz_ullong_64, sizeof(unsigned long long) == 8);
-
 // Used for compile-time constants, so should always use the builtin.
 #define CTZL(x) __builtin_ctzl(x)
 
