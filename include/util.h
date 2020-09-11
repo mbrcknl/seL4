@@ -104,6 +104,8 @@ static unsigned clzl_impl(unsigned long x);
 static unsigned clzll_impl(unsigned long long x);
 #endif
 
+// If there is a builtin CLZ, but no builtin CTZ, then CTZ will be implemented
+// using the builtin CLZ, rather than the long-form implementation.
 #if defined(CONFIG_CTZ_NO_BUILTIN) && defined(CONFIG_CLZ_NO_BUILTIN)
 static unsigned ctzl_impl(unsigned long x);
 static unsigned ctzll_impl(unsigned long long x);
@@ -186,7 +188,9 @@ CONST ctzl(unsigned long x)
     // allowing ctzl to be calculated from clzl and the word size.
     // This is typically the fastest way to calculate ctzl on platforms
     // that have builtin clzl but no builtin ctzl.
-    return 8 * sizeof(unsigned long) - 1 - clzl_impl(x & -x);
+    // We call `clzl` here to get the builtin implementation without
+    // any extra implicit type casts.
+    return 8 * sizeof(unsigned long) - 1 - clzl(x & -x);
 #endif
 #else
     return __builtin_ctzl(x);
@@ -215,7 +219,7 @@ CONST ctzll(unsigned long long x)
         return 8 * sizeof(unsigned long long);
     }
     // See comments on ctzl.
-    return 8 * sizeof(unsigned long long) - 1 - clzll_impl(x & -x);
+    return 8 * sizeof(unsigned long long) - 1 - clzll(x & -x);
 #endif
 #else
     return __builtin_ctzll(x);
