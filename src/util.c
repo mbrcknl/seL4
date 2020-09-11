@@ -180,7 +180,7 @@ static inline unsigned clz32(uint32_t x)
     // Compiler builtins typically return int, but we use unsigned internally
     // to reduce the number of guards we see in the proofs.
     unsigned count = 32;
-    uint32_t mask = ((uint32_t)(-1)); // 0xffffffff
+    uint32_t mask = UINT32_MAX;
 
     // Each iteration i (counting backwards) considers the least significant
     // 2^(i+1) bits of x as the current focus. At the first iteration, the
@@ -243,7 +243,7 @@ static inline unsigned clz32(uint32_t x)
 static inline unsigned clz64(uint64_t x)
 {
     unsigned count = 64;
-    uint64_t mask = ((uint64_t)(-1)); // 0xffffffffffffffff
+    uint64_t mask = UINT64_MAX;
 
     // Although we could implement this using clz32, we spell out the
     // iterations in full for slightly better code generation at low
@@ -313,7 +313,7 @@ unsigned clzll_impl(unsigned long long x)
 static inline unsigned ctz32(uint32_t x)
 {
     unsigned count = 1;
-    uint32_t mask = ((uint32_t)(-1)); // 0xffffffff
+    uint32_t mask = UINT32_MAX;
 
     // Each iteration i (counting backwards) considers the least significant
     // 2^(i+1) bits of x as the current focus. At the first iteration, the
@@ -374,7 +374,7 @@ static inline unsigned ctz32(uint32_t x)
 static inline unsigned ctz64(uint64_t x)
 {
     unsigned count = 1;
-    uint64_t mask = ((uint64_t)(-1)); // 0xffffffffffffffff
+    uint64_t mask = UINT64_MAX;
 
     if (1) {
         // iteration 5
