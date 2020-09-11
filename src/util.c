@@ -162,10 +162,6 @@ long PURE str_to_long(const char *str)
 // implementation. In any case, the compiler might convert this to a branching
 // binary.
 
-// Check some assumptions made by the implementations:
-compile_assert(clz_ulong_32_or_64, sizeof(unsigned long) == 4 || sizeof(unsigned long) == 8);
-compile_assert(clz_ullong_64, sizeof(unsigned long long) == 8);
-
 // Count leading zeros.
 #ifdef CONFIG_CLZ_NO_BUILTIN
 
@@ -175,7 +171,7 @@ compile_assert(clz_ullong_64, sizeof(unsigned long long) == 8);
 // preferable on architectures with deep pipelines, or when the maximum
 // priority of runnable threads frequently varies. However, note that the
 // compiler may choose to convert this to a branching implementation.
-static inline unsigned clz32(uint32_t x)
+unsigned clz32(uint32_t x)
 {
     // Compiler builtins typically return int, but we use unsigned internally
     // to reduce the number of guards we see in the proofs.
@@ -240,7 +236,7 @@ static inline unsigned clz32(uint32_t x)
     return count - x;
 }
 
-static inline unsigned clz64(uint64_t x)
+unsigned clz64(uint64_t x)
 {
     unsigned count = 64;
     uint64_t mask = UINT64_MAX;
@@ -294,23 +290,13 @@ static inline unsigned clz64(uint64_t x)
 
     return count - x;
 }
-
-unsigned clzl_impl(unsigned long x)
-{
-    return sizeof(unsigned long) == 8 ? clz64(x) : clz32(x);
-}
-
-unsigned clzll_impl(unsigned long long x)
-{
-    return clz64(x);
-}
 #endif // CONFIG_CLZ_NO_BUILTIN
 
 // Count trailing zeros.
 #if defined(CONFIG_CTZ_NO_BUILTIN) && defined(CONFIG_CLZ_NO_BUILTIN)
 
 // See clz32_branchless for comments on branchless implementations.
-static inline unsigned ctz32(uint32_t x)
+unsigned ctz32(uint32_t x)
 {
     unsigned count = 1;
     uint32_t mask = UINT32_MAX;
@@ -371,7 +357,7 @@ static inline unsigned ctz32(uint32_t x)
     return count - x;
 }
 
-static inline unsigned ctz64(uint64_t x)
+unsigned ctz64(uint64_t x)
 {
     unsigned count = 1;
     uint64_t mask = UINT64_MAX;
@@ -420,15 +406,5 @@ static inline unsigned ctz64(uint64_t x)
     }
 
     return count - x;
-}
-
-unsigned ctzl_impl(unsigned long x)
-{
-    return sizeof(unsigned long) == 8 ? ctz64(x) : ctz32(x);
-}
-
-unsigned ctzll_impl(unsigned long long x)
-{
-    return ctz64(x);
 }
 #endif // CONFIG_CTZ_NO_BUILTIN && CONFIG_CLZ_NO_BUILTIN

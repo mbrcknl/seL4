@@ -100,16 +100,20 @@ long PURE str_to_long(const char *str);
 
 
 #ifdef CONFIG_CLZ_NO_BUILTIN
-static unsigned clzl_impl(unsigned long x);
-static unsigned clzll_impl(unsigned long long x);
+static unsigned clz32(uint32_t x);
+static unsigned clz64(uint64_t x);
 #endif
 
 // If there is a builtin CLZ, but no builtin CTZ, then CTZ will be implemented
 // using the builtin CLZ, rather than the long-form implementation.
 #if defined(CONFIG_CTZ_NO_BUILTIN) && defined(CONFIG_CLZ_NO_BUILTIN)
-static unsigned ctzl_impl(unsigned long x);
-static unsigned ctzll_impl(unsigned long long x);
+static unsigned ctz32(uint32_t x);
+static unsigned ctz64(uint64_t x);
 #endif
+
+// Check some assumptions made by the implementations:
+compile_assert(clz_ulong_32_or_64, sizeof(unsigned long) == 4 || sizeof(unsigned long) == 8);
+compile_assert(clz_ullong_64, sizeof(unsigned long long) == 8);
 
 // Used for compile-time constants, so should always use the builtin.
 #define CTZL(x) __builtin_ctzl(x)
@@ -135,7 +139,7 @@ static inline long
 CONST clzl(unsigned long x)
 {
 #ifdef CONFIG_CLZ_NO_BUILTIN
-    return clzl_impl(x);
+    return sizeof(unsigned long) == 8 ? clz64(x) : clz32(x);
 #else
     return __builtin_clzl(x);
 #endif
@@ -156,7 +160,7 @@ static inline long long
 CONST clzll(unsigned long long x)
 {
 #ifdef CONFIG_CLZ_NO_BUILTIN
-    return clzll_impl(x);
+    return clz64(x);
 #else
     return __builtin_clzll(x);
 #endif
@@ -179,7 +183,7 @@ CONST ctzl(unsigned long x)
 {
 #ifdef CONFIG_CTZ_NO_BUILTIN
 #ifdef CONFIG_CLZ_NO_BUILTIN
-    return ctzl_impl(x);
+    return sizeof(unsigned long) == 8 ? ctz64(x) : ctz32(x);
 #else
     if (unlikely(x == 0)) {
         return 8 * sizeof(unsigned long);
@@ -213,7 +217,7 @@ CONST ctzll(unsigned long long x)
 {
 #ifdef CONFIG_CTZ_NO_BUILTIN
 #ifdef CONFIG_CLZ_NO_BUILTIN
-    return ctzll_impl(x);
+    return ctz64(x);
 #else
     if (unlikely(x == 0)) {
         return 8 * sizeof(unsigned long long);
