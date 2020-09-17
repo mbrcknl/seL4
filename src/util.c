@@ -295,10 +295,10 @@ unsigned clz64(uint64_t x)
 // Count trailing zeros.
 #if defined(CONFIG_CTZ_NO_BUILTIN) && defined(CONFIG_CLZ_NO_BUILTIN)
 
-// See clz32_branchless for comments on branchless implementations.
+// See comments on clz32.
 unsigned ctz32(uint32_t x)
 {
-    unsigned count = 1;
+    unsigned count = (x == 0);
     uint32_t mask = UINT32_MAX;
 
     // Each iteration i (counting backwards) considers the least significant
@@ -312,6 +312,10 @@ unsigned ctz32(uint32_t x)
     // shifted into this position. The trailing zero count can be determined
     // from the total shift.
     //
+    // If the initial input is zero, every iteration causes a shift, for a
+    // total shift count of 31, so in that case, we add one for a total count
+    // of 32. In the comments, xi is the initial value of x.
+    //
     // The iterations are given a very regular structure to facilitate proofs,
     // while also generating reasonably efficient binary code.
 
@@ -319,93 +323,90 @@ unsigned ctz32(uint32_t x)
         // iteration 4
         mask >>= (1 << 4); // 0x0000ffff
         unsigned bits = ((unsigned)((x & mask) == 0)) << 4; // [0, 16]
-        x >>= bits; // <= 0x0000ffff
-        count += bits; // [1, 17]
+        x >>= bits; // xi != 0 --> x & 0x0000ffff != 0
+        count += bits; // if xi != 0 then [0, 16] else 17
     }
     if (1) {
         // iteration 3
         mask >>= (1 << 3); // 0x000000ff
         unsigned bits = ((unsigned)((x & mask) == 0)) << 3; // [0, 8]
-        x >>= bits; // <= 0x000000ff
-        count += bits; // [1, 9, 17, 25]
+        x >>= bits; // xi != 0 --> x & 0x000000ff != 0
+        count += bits; // if xi != 0 then [0, 8, 16, 24] else 25
     }
     if (1) {
         // iteration 2
         mask >>= (1 << 2); // 0x0000000f
         unsigned bits = ((unsigned)((x & mask) == 0)) << 2; // [0, 4]
-        x >>= bits; // <= 0x0000000f
-        count += bits; // [1, 5, 9, ..., 29]
+        x >>= bits; // xi != 0 --> x & 0x0000000f != 0
+        count += bits; // if xi != 0 then [0, 4, 8, ..., 28] else 29
     }
     if (1) {
         // iteration 1
         mask >>= (1 << 1); // 0x00000003
         unsigned bits = ((unsigned)((x & mask) == 0)) << 1; // [0, 2]
-        x >>= bits; // <= 0x00000003
-        count += bits; // [1, 3, 5, ..., 31]
+        x >>= bits; // xi != 0 --> x & 0x00000003 != 0
+        count += bits; // if xi != 0 then [0, 2, 4, ..., 30] else 31
     }
     if (1) {
         // iteration 0
         mask >>= (1 << 0); // 0x00000001
         unsigned bits = ((unsigned)((x & mask) == 0)) << 0; // [0, 1]
-        x >>= bits; // <= 0x00000001
-        count += bits; // [1, 2, 3, ..., 32]
+        x >>= bits; // <= xi != 0 --> x & 0x00000001 != 0
+        count += bits; // if xi != 0 then [0, 1, 2, ..., 31] else 32
     }
 
-    // If the original input was zero, there will have been no shifts, so this
-    // gives a result of 32. Otherwise, x is now exactly 1, so subtracting from
-    // count gives a result from [0, 1, 2, ..., 31].
-    return count - x;
+    return count;
 }
 
 unsigned ctz64(uint64_t x)
 {
-    unsigned count = 1;
+    unsigned count = (x == 0);
     uint64_t mask = UINT64_MAX;
 
     if (1) {
         // iteration 5
         mask >>= (1 << 5); // 0x00000000ffffffff
         unsigned bits = ((unsigned)((x & mask) == 0)) << 5; // [0, 32]
-        x >>= bits; // <= 0x00000000ffffffff
-        count += bits; // [1, 33]
+        x >>= bits; // xi != 0 --> x & 0x00000000ffffffff != 0
+        count += bits; // if xi != 0 then [0, 32] else 33
     }
     if (1) {
         // iteration 4
         mask >>= (1 << 4); // 0x000000000000ffff
         unsigned bits = ((unsigned)((x & mask) == 0)) << 4; // [0, 16]
-        x >>= bits; // <= 0x000000000000ffff
-        count += bits; // [1, 17, 33, 49]
+        x >>= bits; // xi != 0 --> x & 0x000000000000ffff != 0
+        count += bits; // if xi != 0 then [0, 16, 32, 48] else 49
     }
     if (1) {
         // iteration 3
         mask >>= (1 << 3); // 0x00000000000000ff
         unsigned bits = ((unsigned)((x & mask) == 0)) << 3; // [0, 8]
-        x >>= bits; // <= 0x00000000000000ff
-        count += bits; // [1, 9, 17, ..., 57]
+        x >>= bits; // <= xi != 0 --> x & 0x00000000000000ff != 0
+        count += bits; // if xi != 0 then [0, 8, 16, ..., 56] else 57
     }
     if (1) {
         // iteration 2
         mask >>= (1 << 2); // 0x000000000000000f
         unsigned bits = ((unsigned)((x & mask) == 0)) << 2; // [0, 4]
-        x >>= bits; // <= 0x000000000000000f
-        count += bits; // [1, 5, 9, ..., 61]
+        x >>= bits; // <= xi != 0 --> x & 0x000000000000000f != 0
+        count += bits; // if xi != 0 then [0, 4, 8, ..., 60] else 61
     }
     if (1) {
         // iteration 1
         mask >>= (1 << 1); // 0x0000000000000003
         unsigned bits = ((unsigned)((x & mask) == 0)) << 1; // [0, 2]
-        x >>= bits; // <= 0x0000000000000003
-        count += bits; // [1, 3, 5, ..., 63]
+        x >>= bits; // <= xi != 0 --> x & 0x0000000000000003 != 0
+        count += bits; // if xi != 0 then [0, 2, 4, ..., 62] else 63
     }
     if (1) {
         // iteration 0
         mask >>= (1 << 0); // 0x0000000000000001
         unsigned bits = ((unsigned)((x & mask) == 0)) << 0; // [0, 1]
-        x >>= bits; // <= 0x0000000000000001
-        count += bits; // [1, 2, 3, ..., 64]
+        x >>= bits; // <= xi != 0 --> x & 0x0000000000000001 != 0
+        count += bits; // if xi != 0 then [0, 1, 2, ..., 63] else 64
     }
 
-    return count - x;
+    return count;
 }
 #endif // CONFIG_CTZ_NO_BUILTIN && CONFIG_CLZ_NO_BUILTIN
 
