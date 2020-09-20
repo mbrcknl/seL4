@@ -98,23 +98,21 @@ int PURE strncmp(const char *s1, const char *s2, int n);
 long CONST char_to_long(char c);
 long PURE str_to_long(const char *str);
 
-
-#ifdef CONFIG_CLZ_NO_BUILTIN
-static CONST unsigned clz32(uint32_t x);
-static CONST unsigned clz64(uint64_t x);
-#endif
-
-// If there is a builtin CLZ, but no builtin CTZ, then CTZ will be implemented
-// using the builtin CLZ, rather than the long-form implementation.
-#if defined(CONFIG_CTZ_NO_BUILTIN) && defined(CONFIG_CLZ_NO_BUILTIN)
-static CONST unsigned ctz32(uint32_t x);
-static CONST unsigned ctz64(uint64_t x);
-#endif
+// Library functions for counting leading/trailing zeros.
+// GCC's builtins will emit calls to these functions when the platform
+// does not provide suitable inline assembly.
+// We only emit function definitions if CONFIG_CLZL_IMPL etc are set.
+NO_INLINE CONST int __clzdi2(unsigned long x);
+NO_INLINE CONST int __clzti2(unsigned long long x);
+NO_INLINE CONST int __ctzdi2(unsigned long x);
+NO_INLINE CONST int __ctzti2(unsigned long long x);
 
 // Used for compile-time constants, so should always use the builtin.
 #define CTZL(x) __builtin_ctzl(x)
 
 // Count leading zeros.
+// The CONFIG_CLZ_NO_BUILTIN macro may be used to expose the library function
+// to the C parser for verification.
 #ifndef CONFIG_CLZ_NO_BUILTIN
 // If we use a compiler builtin, we cannot verify it, so we use the following
 // annotations to hide the function body from the proofs, and axiomatise its
@@ -135,7 +133,7 @@ static inline long
 CONST clzl(unsigned long x)
 {
 #ifdef CONFIG_CLZ_NO_BUILTIN
-    return sizeof(unsigned long) == 8 ? clz64(x) : clz32(x);
+    return __clzdi2(x);
 #else
     return __builtin_clzl(x);
 #endif
@@ -156,7 +154,7 @@ static inline long long
 CONST clzll(unsigned long long x)
 {
 #ifdef CONFIG_CLZ_NO_BUILTIN
-    return clz64(x);
+    return __clzti2(x);
 #else
     return __builtin_clzll(x);
 #endif
@@ -182,8 +180,8 @@ CONST ctzl(unsigned long x)
 // using the builtin CLZ, rather than the long-form implementation.
 // This is typically the fastest way to calculate ctzl on such platforms.
 #ifdef CONFIG_CLZ_NO_BUILTIN
-    // Here, there are no builtins we can use.
-    return sizeof(unsigned long) == 8 ? ctz64(x) : ctz32(x);
+    // Here, there are no builtins we can use, so call the library function.
+    return __ctzdi2(x);
 #else
     // Here, we have __builtin_clzl, but no __builtin_ctzl.
     if (unlikely(x == 0)) {
@@ -216,7 +214,7 @@ CONST ctzll(unsigned long long x)
 #ifdef CONFIG_CTZ_NO_BUILTIN
 // See comments on ctzl.
 #ifdef CONFIG_CLZ_NO_BUILTIN
-    return ctz64(x);
+    return __ctzti2(x);
 #else
     if (unlikely(x == 0)) {
         return 8 * sizeof(unsigned long long);

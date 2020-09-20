@@ -162,16 +162,19 @@ long PURE str_to_long(const char *str)
 // implementation. In any case, the compiler might convert this to a branching
 // binary.
 
-// Count leading zeros.
-#ifdef CONFIG_CLZ_NO_BUILTIN
+// Check some assumptions made by the CLZ and CTZ library functions:
+compile_assert(clz_ulong_32_or_64, sizeof(unsigned long) == 4 || sizeof(unsigned long) == 8);
+compile_assert(clz_ullong_64, sizeof(unsigned long long) == 8);
 
+#ifdef CONFIG_CLZL_IMPL
+// Count leading zeros.
 // This implementation contains no branches. If the architecture provides an
 // instruction to set a register to a boolean value on a comparison, then the
 // binary might also avoid branching. A branchless implementation might be
 // preferable on architectures with deep pipelines, or when the maximum
 // priority of runnable threads frequently varies. However, note that the
 // compiler may choose to convert this to a branching implementation.
-unsigned clz32(uint32_t x)
+static CONST inline unsigned clz32(uint32_t x)
 {
     // Compiler builtins typically return int, but we use unsigned internally
     // to reduce the number of guards we see in the proofs.
@@ -235,8 +238,10 @@ unsigned clz32(uint32_t x)
     // count gives a result from [0, 1, 2, ..., 31].
     return count - x;
 }
+#endif
 
-unsigned clz64(uint64_t x)
+#if defined(CONFIG_CLZL_IMPL) || defined (CONFIG_CLZLL_IMPL)
+static CONST inline unsigned clz64(uint64_t x)
 {
     unsigned count = 64;
     uint64_t mask = UINT64_MAX;
@@ -290,13 +295,26 @@ unsigned clz64(uint64_t x)
 
     return count - x;
 }
-#endif // CONFIG_CLZ_NO_BUILTIN
+#endif
 
+#ifdef CONFIG_CLZL_IMPL
+int __clzdi2(unsigned long x)
+{
+    return sizeof(unsigned long) == 4 ? clz32(x) : clz64(x);
+}
+#endif
+
+#ifdef CONFIG_CLZLL_IMPL
+int __clzti2(unsigned long long x)
+{
+    return clz64(x);
+}
+#endif
+
+#ifdef CONFIG_CTZL_IMPL
 // Count trailing zeros.
-#if defined(CONFIG_CTZ_NO_BUILTIN) && defined(CONFIG_CLZ_NO_BUILTIN)
-
 // See comments on clz32.
-unsigned ctz32(uint32_t x)
+static CONST inline unsigned ctz32(uint32_t x)
 {
     unsigned count = (x == 0);
     uint32_t mask = UINT32_MAX;
@@ -357,8 +375,10 @@ unsigned ctz32(uint32_t x)
 
     return count;
 }
+#endif
 
-unsigned ctz64(uint64_t x)
+#if defined(CONFIG_CTZL_IMPL) || defined (CONFIG_CTZLL_IMPL)
+static CONST inline unsigned ctz64(uint64_t x)
 {
     unsigned count = (x == 0);
     uint64_t mask = UINT64_MAX;
@@ -408,8 +428,18 @@ unsigned ctz64(uint64_t x)
 
     return count;
 }
-#endif // CONFIG_CTZ_NO_BUILTIN && CONFIG_CLZ_NO_BUILTIN
+#endif
 
-// Check some assumptions made by the CLZ and CTZ header functions:
-compile_assert(clz_ulong_32_or_64, sizeof(unsigned long) == 4 || sizeof(unsigned long) == 8);
-compile_assert(clz_ullong_64, sizeof(unsigned long long) == 8);
+#ifdef CONFIG_CTZL_IMPL
+int __ctzdi2(unsigned long x)
+{
+    return sizeof(unsigned long) == 4 ? ctz32(x) : ctz64(x);
+}
+#endif
+
+#ifdef CONFIG_CTZLL_IMPL
+int __ctzti2(unsigned long long x)
+{
+    return ctz64(x);
+}
+#endif
