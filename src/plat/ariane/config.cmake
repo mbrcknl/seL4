@@ -13,12 +13,6 @@ if(KernelPlatformAriane)
     config_set(KernelRiscVPlatform RISCV_PLAT "ariane")
     config_set(KernelPlatformFirstHartID FIRST_HART_ID 0)
     list(APPEND KernelDTSList "tools/dts/ariane.dts")
-
-    # Until extension B (bitmanip) is available, we use library functions to
-    # count leading/trailing zeros.
-    config_set(KernelClzNoBuiltin CLZ_NO_BUILTIN ON)
-    config_set(KernelCtzNoBuiltin CTZ_NO_BUILTIN ON)
-
     declare_default_headers(
         TIMER_FREQUENCY 10000000llu PLIC_MAX_NUM_INT 0
         INTERRUPT_CONTROLLER arch/machine/plic.h

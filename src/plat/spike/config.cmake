@@ -24,12 +24,6 @@ if(KernelPlatformSpike)
     else()
         list(APPEND KernelDTSList "tools/dts/spike.dts")
     endif()
-
-    # Until extension B (bitmanip) is available, we use library functions to
-    # count leading/trailing zeros.
-    config_set(KernelClzNoBuiltin CLZ_NO_BUILTIN ON)
-    config_set(KernelCtzNoBuiltin CTZ_NO_BUILTIN ON)
-
     declare_default_headers(
         TIMER_FREQUENCY 10000000llu PLIC_MAX_NUM_INT 0
         INTERRUPT_CONTROLLER arch/machine/plic.h
