@@ -71,7 +71,9 @@ setMRs_lookup_failure(tcb_t *receiver, word_t *receiveIPCBuffer,
     }
 }
 
-static inline void copyMRsFaultReply(tcb_t *sender, tcb_t *receiver, MessageID_t id, word_t length)
+static inline void copyMRsFaultReply(tcb_t *sender, tcb_t *receiver,
+                                     const register_t fault_message[],
+                                     word_t length)
 {
     word_t i;
     bool_t archInfo;
@@ -79,7 +81,7 @@ static inline void copyMRsFaultReply(tcb_t *sender, tcb_t *receiver, MessageID_t
     archInfo = Arch_getSanitiseRegisterInfo(receiver);
 
     for (i = 0; i < MIN(length, n_msgRegisters); i++) {
-        register_t r = fault_messages[id][i];
+        register_t r = fault_message[i];
         word_t v = getRegister(sender, msgRegisters[i]);
         setRegister(receiver, r, sanitiseRegister(r, v, archInfo));
     }
@@ -88,7 +90,7 @@ static inline void copyMRsFaultReply(tcb_t *sender, tcb_t *receiver, MessageID_t
         word_t *sendBuf = lookupIPCBuffer(false, sender);
         if (sendBuf) {
             for (; i < length; i++) {
-                register_t r = fault_messages[id][i];
+                register_t r = fault_message[i];
                 word_t v = sendBuf[i + 1];
                 setRegister(receiver, r, sanitiseRegister(r, v, archInfo));
             }
@@ -96,17 +98,18 @@ static inline void copyMRsFaultReply(tcb_t *sender, tcb_t *receiver, MessageID_t
     }
 }
 
-static inline void copyMRsFault(tcb_t *sender, tcb_t *receiver, MessageID_t id,
+static inline void copyMRsFault(tcb_t *sender, tcb_t *receiver,
+                                const register_t fault_message[],
                                 word_t length, word_t *receiveIPCBuffer)
 {
     word_t i;
     for (i = 0; i < MIN(length, n_msgRegisters); i++) {
-        setRegister(receiver, msgRegisters[i], getRegister(sender, fault_messages[id][i]));
+        setRegister(receiver, msgRegisters[i], getRegister(sender, fault_message[i]));
     }
 
     if (receiveIPCBuffer) {
         for (; i < length; i++) {
-            receiveIPCBuffer[i + 1] = getRegister(sender, fault_messages[id][i]);
+            receiveIPCBuffer[i + 1] = getRegister(sender, fault_message[i]);
         }
     }
 }
@@ -124,16 +127,19 @@ bool_t handleFaultReply(tcb_t *receiver, tcb_t *sender)
         return true;
 
     case seL4_Fault_UnknownSyscall:
-        copyMRsFaultReply(sender, receiver, MessageID_Syscall, MIN(length, n_syscallMessage));
+        copyMRsFaultReply(sender, receiver, syscall_fault_message.msg,
+                          MIN(length, n_syscallMessage));
         return (label == 0);
 
     case seL4_Fault_UserException:
-        copyMRsFaultReply(sender, receiver, MessageID_Exception, MIN(length, n_exceptionMessage));
+        copyMRsFaultReply(sender, receiver, exception_fault_message.msg,
+                          MIN(length, n_exceptionMessage));
         return (label == 0);
 
 #ifdef CONFIG_KERNEL_MCS
     case seL4_Fault_Timeout:
-        copyMRsFaultReply(sender, receiver, MessageID_TimeoutReply, MIN(length, n_timeoutMessage));
+        copyMRsFaultReply(sender, receiver, timeout_fault_message.msg,
+                          MIN(length, n_timeoutMessage));
         return (label == 0);
 #endif
 #ifdef CONFIG_HARDWARE_DEBUG_API
@@ -201,7 +207,7 @@ word_t setMRs_fault(tcb_t *sender, tcb_t *receiver, word_t *receiveIPCBuffer)
                                      sender->tcbLookupFailure, seL4_CapFault_LookupFailureType);
 
     case seL4_Fault_UnknownSyscall: {
-        copyMRsFault(sender, receiver, MessageID_Syscall, n_syscallMessage,
+        copyMRsFault(sender, receiver, syscall_fault_message.msg, n_syscallMessage,
                      receiveIPCBuffer);
 
         return setMR(receiver, receiveIPCBuffer, n_syscallMessage,
@@ -209,7 +215,7 @@ word_t setMRs_fault(tcb_t *sender, tcb_t *receiver, word_t *receiveIPCBuffer)
     }
 
     case seL4_Fault_UserException: {
-        copyMRsFault(sender, receiver, MessageID_Exception,
+        copyMRsFault(sender, receiver, exception_fault_message.msg,
                      n_exceptionMessage, receiveIPCBuffer);
         setMR(receiver, receiveIPCBuffer, n_exceptionMessage,
               seL4_Fault_UserException_get_number(sender->tcbFault));

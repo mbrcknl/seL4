@@ -6,10 +6,8 @@
 
 #include <machine/registerset.h>
 
-const register_t fault_messages[][MAX_MSG_SIZE] = {
-    [MessageID_Syscall] = SYSCALL_MESSAGE,
-    [MessageID_Exception] = EXCEPTION_MESSAGE,
+const syscall_fault_message_t syscall_fault_message = { .msg = SYSCALL_MESSAGE };
+const exception_fault_message_t exception_fault_message = { .msg = EXCEPTION_MESSAGE };
 #ifdef CONFIG_KERNEL_MCS
-    [MessageID_TimeoutReply] = TIMEOUT_REPLY_MESSAGE,
+const timeout_fault_message_t timeout_fault_message = { .msg = TIMEOUT_REPLY_MESSAGE };
 #endif
-};
