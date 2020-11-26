@@ -11,20 +11,28 @@
 #include <arch/machine/registerset.h>
 #include <arch/object/structures.h>
 
-typedef enum {
-    MessageID_Syscall,
-    MessageID_Exception,
-#ifdef CONFIG_KERNEL_MCS
-    MessageID_TimeoutReply,
-#endif
-} MessageID_t;
+struct syscall_fault_message_global {
+    register_t msg[n_syscallMessage];
+};
+
+typedef struct syscall_fault_message_global syscall_fault_message_t;
+extern const syscall_fault_message_t syscall_fault_message VISIBLE;
+
+struct exception_fault_message_global {
+    register_t msg[n_exceptionMessage];
+};
+
+typedef struct exception_fault_message_global exception_fault_message_t;
+extern const exception_fault_message_t exception_fault_message VISIBLE;
 
 #ifdef CONFIG_KERNEL_MCS
-#define MAX_MSG_SIZE MAX(n_syscallMessage, MAX(n_timeoutMessage, n_exceptionMessage))
-#else
-#define MAX_MSG_SIZE MAX(n_syscallMessage, n_exceptionMessage)
+struct timeout_fault_message_global {
+    register_t msg[n_timeoutMessage];
+};
+
+typedef struct timeout_fault_message_global timeout_fault_message_t;
+extern const timeout_fault_message_t timeout_fault_message VISIBLE;
 #endif
-extern const register_t fault_messages[][MAX_MSG_SIZE] VISIBLE;
 
 static inline void setRegister(tcb_t *thread, register_t reg, word_t w)
 {
