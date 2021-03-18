@@ -487,13 +487,13 @@ exception_t Arch_decodeInvocation(word_t label, word_t length, cptr_t cptr,
 #endif /* end of CONFIG_ARM_HYPERVISOR_SUPPORT */
 #ifdef CONFIG_ARM_SMMU
     case cap_sid_control_cap:
-        return decodeARMSIDControlInvocation(label, length, cptr, slot, cap, extraCaps, call, buffer);
+        return decodeARMSIDControlInvocation(label, length, cptr, slot, cap, call, buffer);
     case cap_sid_cap:
-        return decodeARMSIDInvocation(label, length, cptr, slot, cap, extraCaps, call, buffer);
+        return decodeARMSIDInvocation(label, length, cptr, slot, cap, call, buffer);
     case cap_cb_control_cap:
-        return decodeARMCBControlInvocation(label, length, cptr, slot, cap, extraCaps, call, buffer);
+        return decodeARMCBControlInvocation(label, length, cptr, slot, cap, call, buffer);
     case cap_cb_cap:
-        return decodeARMCBInvocation(label, length, cptr, slot, cap, extraCaps, call, buffer);
+        return decodeARMCBInvocation(label, length, cptr, slot, cap, call, buffer);
 #endif /*CONFIG_ARM_SMMU*/
     default:
 #else
