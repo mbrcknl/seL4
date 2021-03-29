@@ -143,3 +143,8 @@ if(${FORCE_COLORED_OUTPUT})
     include_guard(GLOBAL)
     add_compile_options(-fdiagnostics-color=always)
 endif()
+
+# Binary verification cannot handle cloned functions and certain inter-procedural optimisations.
+if(KernelVerificationBuild)
+    add_compile_options(-fno-ipa-cp -fno-ipa-icf -fno-ipa-ra -fno-ipa-sra -fno-partial-inlining)
+endif()
